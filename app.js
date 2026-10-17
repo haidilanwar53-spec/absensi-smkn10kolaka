@@ -5052,20 +5052,29 @@ function switchAbsensiMode(mode) {
 // ─────────────────────────────────────────────
 let studentQrScannerInstance = null;
 let lastScannedQrMap = {};
+let isStartingQrScanner = false;
 
 function startStudentQrScanner() {
   const ph = document.getElementById('qr-placeholder');
   const startBtn = document.getElementById('btn-start-qr');
   const stopBtn = document.getElementById('btn-stop-qr');
+  const phBtn = ph ? ph.querySelector('button') : null;
+
+  if (isStartingQrScanner || studentQrScannerInstance) {
+    return; // Cegah double-click atau inisialisasi ganda
+  }
 
   if (typeof Html5Qrcode === 'undefined') {
     showToast('Library scanner QR sedang dimuat, mohon coba sebentar lagi...', 'err');
     return;
   }
 
-  if (studentQrScannerInstance) {
-    try { studentQrScannerInstance.stop(); } catch(_) {}
+  isStartingQrScanner = true;
+  if (startBtn) {
+    startBtn.disabled = true;
+    startBtn.innerHTML = '⏳ Menyiapkan Kamera...';
   }
+  if (phBtn) phBtn.disabled = true;
 
   studentQrScannerInstance = new Html5Qrcode("qr-student-reader");
   const config = { fps: 12, qrbox: { width: 250, height: 250 } };
@@ -5076,11 +5085,24 @@ function startStudentQrScanner() {
     (decodedText) => onStudentQrScanned(decodedText),
     () => {}
   ).then(() => {
+    isStartingQrScanner = false;
     if (ph) ph.style.display = 'none';
-    if (startBtn) startBtn.style.display = 'none';
+    if (startBtn) {
+      startBtn.style.display = 'none';
+      startBtn.disabled = false;
+      startBtn.innerHTML = '▶️ Buka Kamera';
+    }
+    if (phBtn) phBtn.disabled = false;
     if (stopBtn) stopBtn.style.display = 'inline-block';
     showToast('Kamera Scanner QR aktif 📷', 'ok');
   }).catch(err => {
+    isStartingQrScanner = false;
+    studentQrScannerInstance = null;
+    if (startBtn) {
+      startBtn.disabled = false;
+      startBtn.innerHTML = '▶️ Buka Kamera';
+    }
+    if (phBtn) phBtn.disabled = false;
     console.error('Camera QR error:', err);
     showToast('Gagal mengakses kamera: ' + (err.message || 'Izin kamera ditolak'), 'err');
   });
@@ -5090,7 +5112,9 @@ function stopStudentQrScanner() {
   const ph = document.getElementById('qr-placeholder');
   const startBtn = document.getElementById('btn-start-qr');
   const stopBtn = document.getElementById('btn-stop-qr');
+  const phBtn = ph ? ph.querySelector('button') : null;
 
+  isStartingQrScanner = false;
   if (studentQrScannerInstance) {
     studentQrScannerInstance.stop().then(() => {
       studentQrScannerInstance.clear();
@@ -5100,7 +5124,12 @@ function stopStudentQrScanner() {
     });
   }
   if (ph) ph.style.display = 'block';
-  if (startBtn) startBtn.style.display = 'inline-block';
+  if (startBtn) {
+    startBtn.style.display = 'inline-block';
+    startBtn.disabled = false;
+    startBtn.innerHTML = '▶️ Buka Kamera';
+  }
+  if (phBtn) phBtn.disabled = false;
   if (stopBtn) stopBtn.style.display = 'none';
 }
 
@@ -5244,6 +5273,7 @@ function updateQrStats() {
 let faceStream = null;
 let faceAnalysisTimer = null;
 let lastFaceVerifiedTime = 0;
+let isStartingFaceScanner = false;
 window._attendancePhotos = window._attendancePhotos || {};
 
 function startFaceScanner() {
@@ -5251,27 +5281,63 @@ function startFaceScanner() {
   const ph = document.getElementById('face-placeholder');
   const startBtn = document.getElementById('btn-start-face');
   const stopBtn = document.getElementById('btn-stop-face');
+  const phBtn = ph ? ph.querySelector('button') : null;
+
+  if (isStartingFaceScanner || faceStream) {
+    return; // Cegah double-click atau inisialisasi ganda
+  }
 
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
     showToast('Browser tidak mendukung akses kamera langsung.', 'err');
     return;
   }
 
+  isStartingFaceScanner = true;
+  if (startBtn) {
+    startBtn.disabled = true;
+    startBtn.innerHTML = '⏳ Menyiapkan Kamera Wajah...';
+  }
+  if (phBtn) phBtn.disabled = true;
+
+  // Hentikan stream lama jika masih ada track tersisa
+  if (faceStream) {
+    try { faceStream.getTracks().forEach(t => t.stop()); } catch(_) {}
+    faceStream = null;
+  }
+
   navigator.mediaDevices.getUserMedia({
     video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } }
   }).then(stream => {
+    isStartingFaceScanner = false;
     faceStream = stream;
     if (video) {
       video.srcObject = stream;
-      video.play();
+      const playPromise = video.play();
+      if (playPromise !== undefined) {
+        playPromise.catch(err => {
+          if (err.name !== 'AbortError') console.warn('Video play notice:', err);
+        });
+      }
     }
     if (ph) ph.style.display = 'none';
-    if (startBtn) startBtn.style.display = 'none';
+    if (startBtn) {
+      startBtn.style.display = 'none';
+      startBtn.disabled = false;
+      startBtn.innerHTML = '▶️ Buka Kamera Wajah';
+    }
+    if (phBtn) phBtn.disabled = false;
     if (stopBtn) stopBtn.style.display = 'inline-block';
 
     startFaceAnalysisLoop();
     showToast('Kamera Wajah Biometrik aktif 👤', 'ok');
   }).catch(err => {
+    isStartingFaceScanner = false;
+    faceStream = null;
+    if (startBtn) {
+      startBtn.disabled = false;
+      startBtn.innerHTML = '▶️ Buka Kamera Wajah';
+    }
+    if (phBtn) phBtn.disabled = false;
     console.error('Face camera error:', err);
     showToast('Gagal membuka kamera: ' + (err.message || 'Izin kamera ditolak'), 'err');
   });
@@ -5282,7 +5348,9 @@ function stopFaceScanner() {
   const ph = document.getElementById('face-placeholder');
   const startBtn = document.getElementById('btn-start-face');
   const stopBtn = document.getElementById('btn-stop-face');
+  const phBtn = ph ? ph.querySelector('button') : null;
 
+  isStartingFaceScanner = false;
   if (faceAnalysisTimer) {
     clearInterval(faceAnalysisTimer);
     faceAnalysisTimer = null;
@@ -5293,7 +5361,12 @@ function stopFaceScanner() {
   }
   if (video) video.srcObject = null;
   if (ph) ph.style.display = 'block';
-  if (startBtn) startBtn.style.display = 'inline-block';
+  if (startBtn) {
+    startBtn.style.display = 'inline-block';
+    startBtn.disabled = false;
+    startBtn.innerHTML = '▶️ Buka Kamera Wajah';
+  }
+  if (phBtn) phBtn.disabled = false;
   if (stopBtn) stopBtn.style.display = 'none';
 
   const readout = document.getElementById('face-readout');
@@ -5419,6 +5492,8 @@ function startFaceAnalysisLoop() {
   }, 400);
 }
 
+let isCapturingManualFace = false;
+
 function captureManualFaceAttendance() {
   const sel = document.getElementById('face-manual-student');
   const studentName = sel?.value;
@@ -5432,10 +5507,20 @@ function captureManualFaceAttendance() {
     return;
   }
 
+  if (isCapturingManualFace) {
+    return; // Cegah double-click rekam foto
+  }
+  isCapturingManualFace = true;
+  const captureBtn = document.querySelector('.face-manual-bar button');
+  if (captureBtn) {
+    captureBtn.disabled = true;
+    captureBtn.innerHTML = '⏳ Merekam...';
+  }
+
   const offCanvas = document.createElement('canvas');
   offCanvas.width = 160;
   offCanvas.height = 160;
-  const offCtx = offCanvas.getContext('2d');
+  const offCtx = offCanvas.getContext('2d', { willReadFrequently: true });
   const vw = video.videoWidth || 640;
   const vh = video.videoHeight || 480;
   const cropSize = Math.min(vw, vh) * 0.6;
@@ -5445,6 +5530,14 @@ function captureManualFaceAttendance() {
 
   const snapshotData = offCanvas.toDataURL('image/jpeg', 0.85);
   verifyStudentFaceAttendance(studentName, snapshotData, 100);
+
+  setTimeout(() => {
+    isCapturingManualFace = false;
+    if (captureBtn) {
+      captureBtn.disabled = false;
+      captureBtn.innerHTML = '📸 Rekam Bukti Hadir Wajah';
+    }
+  }, 1200);
 }
 
 function verifyStudentFaceAttendance(studentName, photoData, score) {
@@ -5501,8 +5594,18 @@ function addFaceProofToGallery(name, photo, time) {
   const empty = gal.querySelector('.empty-feed');
   if (empty) empty.remove();
 
+  // Cegah duplikasi thumbnail jika siswa yang sama direkam ulang
+  const existing = Array.from(gal.querySelectorAll('.face-proof-thumb')).find(t => t.dataset.student === name);
+  if (existing) {
+    const img = existing.querySelector('img');
+    if (img) img.src = photo;
+    existing.onclick = () => viewPhotoProof(photo, name, time);
+    return;
+  }
+
   const thumb = document.createElement('div');
   thumb.className = 'face-proof-thumb';
+  thumb.dataset.student = name;
   thumb.onclick = () => viewPhotoProof(photo, name, time);
   thumb.innerHTML = `
     <img src="${photo}" alt="${escapeHtml(name)}" />
@@ -6046,19 +6149,29 @@ function switchAbgTab(tab) {
   if (tab === 'myqr') renderMyTeacherQR();
 }
 
+let isStartingTeacherScanner = false;
+
 function startTeacherScanner() {
   const ph = document.getElementById('abg-placeholder');
   const startBtn = document.getElementById('btn-start-abg');
   const stopBtn = document.getElementById('btn-stop-abg');
+  const phBtn = ph ? ph.querySelector('button') : null;
+
+  if (isStartingTeacherScanner || teacherScannerInstance) {
+    return; // Cegah double-click atau inisialisasi ganda
+  }
 
   if (typeof Html5Qrcode === 'undefined') {
     showToast('Library scanner QR sedang dimuat...', 'err');
     return;
   }
 
-  if (teacherScannerInstance) {
-    try { teacherScannerInstance.stop(); } catch(_) {}
+  isStartingTeacherScanner = true;
+  if (startBtn) {
+    startBtn.disabled = true;
+    startBtn.innerHTML = '⏳ Menyiapkan Kamera...';
   }
+  if (phBtn) phBtn.disabled = true;
 
   teacherScannerInstance = new Html5Qrcode("abg-qr-reader");
   const config = { fps: 12, qrbox: { width: 250, height: 250 } };
@@ -6069,11 +6182,24 @@ function startTeacherScanner() {
     (decodedText) => onTeacherQrScanned(decodedText),
     () => {}
   ).then(() => {
+    isStartingTeacherScanner = false;
     if (ph) ph.style.display = 'none';
-    if (startBtn) startBtn.style.display = 'none';
+    if (startBtn) {
+      startBtn.style.display = 'none';
+      startBtn.disabled = false;
+      startBtn.innerHTML = '▶️ Buka Kamera Scanner';
+    }
+    if (phBtn) phBtn.disabled = false;
     if (stopBtn) stopBtn.style.display = 'inline-block';
     showToast('Scanner Presensi Guru Aktif 📷', 'ok');
   }).catch(err => {
+    isStartingTeacherScanner = false;
+    teacherScannerInstance = null;
+    if (startBtn) {
+      startBtn.disabled = false;
+      startBtn.innerHTML = '▶️ Buka Kamera Scanner';
+    }
+    if (phBtn) phBtn.disabled = false;
     console.error('Teacher camera error:', err);
     showToast('Gagal membuka kamera presensi: ' + (err.message || 'Izin ditolak'), 'err');
   });
@@ -6083,7 +6209,9 @@ function stopTeacherScanner() {
   const ph = document.getElementById('abg-placeholder');
   const startBtn = document.getElementById('btn-start-abg');
   const stopBtn = document.getElementById('btn-stop-abg');
+  const phBtn = ph ? ph.querySelector('button') : null;
 
+  isStartingTeacherScanner = false;
   if (teacherScannerInstance) {
     teacherScannerInstance.stop().then(() => {
       teacherScannerInstance.clear();
@@ -6093,7 +6221,12 @@ function stopTeacherScanner() {
     });
   }
   if (ph) ph.style.display = 'block';
-  if (startBtn) startBtn.style.display = 'inline-block';
+  if (startBtn) {
+    startBtn.style.display = 'inline-block';
+    startBtn.disabled = false;
+    startBtn.innerHTML = '▶️ Buka Kamera Scanner';
+  }
+  if (phBtn) phBtn.disabled = false;
   if (stopBtn) stopBtn.style.display = 'none';
 }
 
