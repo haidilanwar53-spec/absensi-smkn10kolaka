@@ -1,0 +1,1937 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="X-Content-Type-Options" content="nosniff" />
+  <meta name="referrer" content="strict-origin-when-cross-origin" />
+  <title>Absensi Guru &amp; Siswa Digital – SMK Negeri 10 Kolaka</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet">
+  <script src="vendor/xlsx.full.min.js"></script>
+  <script>
+    if (typeof XLSX === 'undefined') {
+      document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"><\/script>');
+    }
+  </script>
+  <script src="vendor/html5-qrcode.min.js"></script>
+  <script src="vendor/qrcode.min.js"></script>
+  <script>
+    if (typeof Html5Qrcode === 'undefined') {
+      document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"><\/script>');
+    }
+    if (typeof QRCode === 'undefined') {
+      document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"><\/script>');
+    }
+  </script>
+  <link rel="icon" type="image/png" href="img/favicon.png?v=20261015_11" />
+  <link rel="apple-touch-icon" href="img/logo_smkn10.png?v=20261015_11" />
+  <link rel="stylesheet" href="style.css?v=20261016_10" />
+  <script>
+    (function() {
+      try {
+        const savedTheme = localStorage.getItem('smkn10_theme');
+        if (savedTheme === 'dark' || (!savedTheme && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+          document.documentElement.setAttribute('data-theme', 'dark');
+        } else {
+          document.documentElement.setAttribute('data-theme', 'light');
+        }
+        if (localStorage.getItem('smkn10_sidebar_mini') === 'true' && window.innerWidth > 720) {
+          document.documentElement.classList.add('sidebar-mini');
+        }
+      } catch(e) {}
+    })();
+  </script>
+</head>
+
+<body>
+
+  <!-- Ambient Depth Mesh -->
+  <div class="ambient-mesh" aria-hidden="true">
+    <div class="ambient-orb orb-1"></div>
+    <div class="ambient-orb orb-2"></div>
+  </div>
+
+  <div class="app-shell">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-head">
+        <div class="school-emblem" title="SMK Negeri 10 Kolaka">
+          <img src="img/logo_smkn10.png" alt="Logo SMKN 10 Kolaka" />
+        </div>
+        <div class="school-info">
+          <div class="school-name">SMK Negeri 10</div>
+          <div class="school-loc">Kolaka, Sulawesi Tenggara</div>
+        </div>
+        <button class="sidebar-toggle-btn" id="btn-sidebar-toggle" onclick="toggleSidebarMinimize()" title="Perkecil / Perbesar Sidebar">
+          <span id="sidebar-toggle-icon">◀</span>
+        </button>
+      </div>
+
+      <div class="guru-strip" id="guru-strip" onclick="openTeacherSwitchModal()" title="Klik untuk berganti akun guru (24 Guru)" style="cursor:pointer">
+        <div class="guru-initials" id="g-initials">?</div>
+        <div class="guru-detail">
+          <span class="g-nama" id="g-nama">Belum diisi</span>
+          <span class="g-nip" id="g-nip">NIP –</span>
+          <div style="display:flex;align-items:center;gap:6px;margin-top:5px;flex-wrap:wrap">
+            <span class="guru-switch-pill">
+              <span>🔄</span> <span id="guru-switch-pill-text">Ganti Akun</span>
+            </span>
+            <button class="guru-logout-btn" id="btn-guru-logout" onclick="logoutGuru(event)" title="Keluar dari akun guru saat ini" style="display:none">
+              <span>🚪</span> Logout
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <nav class="sidenav">
+        <span class="nav-group-label">MENU UTAMA</span>
+        <button class="nav-btn active" id="nav-dashboard" onclick="showPage('dashboard')" data-tooltip="Dashboard">
+          <span>🏠</span> <span class="nav-text">Dashboard</span>
+        </button>
+        <button class="nav-btn" id="nav-absensi" onclick="showPage('absensi')" data-tooltip="Input Absensi">
+          <span>✏️</span> <span class="nav-text">Input Absensi</span>
+        </button>
+        <button class="nav-btn" id="nav-rekap" onclick="showPage('rekap')" data-tooltip="Rekap Absensi">
+          <span>📋</span> <span class="nav-text">Rekap Absensi</span>
+        </button>
+        <button class="nav-btn" id="nav-absen-guru" onclick="showPage('absen-guru')" data-tooltip="Presensi Guru (QR)">
+          <span>🕒</span> <span class="nav-text">Presensi Guru (QR)</span>
+        </button>
+
+        <span class="nav-group-label" style="margin-top:12px">BIOMETRIK &amp; KARTU</span>
+        <button class="nav-btn" id="nav-kartu" onclick="showPage('kartu')" data-tooltip="Kartu & QR Code">
+          <span>🪪</span> <span class="nav-text">Kartu &amp; QR Code</span>
+        </button>
+        <button class="nav-btn" id="nav-siswa" onclick="showPage('siswa')" data-tooltip="Data Siswa & Wajah">
+          <span>👥</span> <span class="nav-text">Data Siswa &amp; Wajah</span>
+        </button>
+
+        <span class="nav-group-label" style="margin-top:12px">DATA AKADEMIK &amp; NILAI</span>
+        <button class="nav-btn" id="nav-penilaian" onclick="showPage('penilaian')" data-tooltip="Penilaian & Rapor">
+          <span>📊</span> <span class="nav-text">Penilaian &amp; Rapor</span>
+        </button>
+        <button class="nav-btn" id="nav-roster" onclick="showPage('roster')" data-tooltip="Jadwal & Roster SK">
+          <span>🗓️</span> <span class="nav-text">Jadwal &amp; Roster SK</span>
+        </button>
+        <button class="nav-btn" id="nav-mapel" onclick="showPage('mapel')" data-tooltip="Mata Pelajaran">
+          <span>📚</span> <span class="nav-text">Mata Pelajaran</span>
+        </button>
+        <button class="nav-btn" id="nav-pengaturan" onclick="showPage('pengaturan')" data-tooltip="Pengaturan">
+          <span>⚙️</span> <span class="nav-text">Pengaturan</span> <span id="sidebar-lock-indicator" style="font-size:11px;margin-left:auto;opacity:0.75" title="Menu Pengaturan Terkunci">🔒</span>
+        </button>
+      </nav>
+
+      <div class="sidebar-ta" id="sidebar-ta"></div>
+    </aside>
+
+    <!-- WRAPPER KANAN -->
+    <div class="right-panel">
+
+      <header class="topbar">
+        <button class="hamburger" onclick="toggleSidebar()" title="Buka Menu">&#9776;</button>
+        <button class="topbar-sidebar-toggle" id="btn-topbar-sidebar-toggle" onclick="toggleSidebarMinimize()" title="Perkecil / Perbesar Sidebar (Desktop)">
+          <span id="topbar-sidebar-toggle-icon">◀</span>
+        </button>
+        <h1 class="page-heading" id="page-heading">Dashboard</h1>
+        <div class="topbar-actions">
+          <!-- Topbar Theme Switcher -->
+          <button class="btn-liquid-topbar btn-theme-toggle" id="btn-topbar-theme" onclick="toggleTheme()" title="Ubah Tema Gelap / Terang">
+            <span class="btn-liquid-icon" id="topbar-theme-icon">🌙</span>
+            <span id="topbar-theme-text">Gelap</span>
+          </button>
+          <button class="btn-liquid-topbar" onclick="openTeacherSwitchModal()" title="Masuk atau berganti akun guru (24 Guru)">
+            <span class="btn-liquid-icon">👤</span>
+            <span id="topbar-teacher-btn-name">Ganti Akun Guru</span>
+            <span class="liquid-dots">• • •</span>
+          </button>
+          <button class="btn-liquid-topbar btn-liquid-logout" id="btn-topbar-logout" onclick="logoutGuru(event)" title="Keluar / Logout Akun Guru" style="display:none">
+            <span class="btn-liquid-icon">🚪</span>
+            <span>Logout</span>
+          </button>
+          <button class="btn-liquid-topbar" id="btn-topbar-refresh" onclick="refreshCurrentPage()" title="Segarkan Data Halaman Ini">
+            <span class="btn-liquid-icon">🔄</span>
+            <span>Segarkan</span>
+          </button>
+        </div>
+        <div class="topbar-date" id="topbar-date"></div>
+      </header>
+
+      <div class="content-area">
+
+        <!-- ============ SETUP ============ -->
+        <section class="page active" id="page-setup">
+          <div class="setup-wrap">
+            <div class="setup-box">
+              <div class="setup-banner">
+                <div class="setup-logo-wrap">
+                  <img src="img/logo_smkn10.png" alt="Logo SMKN 10 Kolaka" class="setup-school-logo" />
+                </div>
+                <h2>Selamat Datang</h2>
+                <p>Aplikasi Absensi Guru &amp; Siswa Digital<br><strong>SMK Negeri 10 Kolaka</strong></p>
+              </div>
+              <div class="setup-form">
+                <p class="form-hint">Pilih dari SK Pembagian Tugas Semester Ganjil 2026/2027 atau isi manual.</p>
+                <div class="field" style="background:#eaf3ec;padding:12px;border-radius:8px;border:1px solid #4a8c60">
+                  <label style="color:#1c3d2c;font-weight:700">⚡ Pilih Nama Guru dari SK (Otomatis):</label>
+                  <select id="su-sk-guru" onchange="onSelectSKGuru(this.value)"
+                    style="margin-top:6px;width:100%;padding:8px;font-weight:600">
+                    <option value="">-- Pilih Guru SMKN 10 Kolaka --</option>
+                  </select>
+                  <p style="font-size:11px;color:#2f6142;margin-top:5px;line-height:1.4">
+                    Memilih nama akan otomatis mengisi NIP, Mapel yang diampu, serta rombel kelas sesuai SK &amp;
+                    Roster.
+                  </p>
+                </div>
+                <div class="field">
+                  <label>Nama Lengkap</label>
+                  <input id="su-nama" type="text" placeholder="Nama sesuai SK ..." />
+                </div>
+                <div class="field">
+                  <label>NIP / NUPTK</label>
+                  <input id="su-nip" type="text" placeholder="Nomor Induk Pegawai ..." />
+                </div>
+                <div class="field-row" style="margin-bottom:14px">
+                  <div class="field" style="flex:1.2">
+                    <label>Tahun Ajaran</label>
+                    <input id="su-ta" type="text" value="2026/2027" placeholder="Contoh: 2026/2027" />
+                  </div>
+                  <div class="field" style="flex:1">
+                    <label>Semester</label>
+                    <select id="su-semester" style="font-weight:700">
+                      <option value="Ganjil" selected>Semester Ganjil</option>
+                      <option value="Genap">Semester Genap</option>
+                    </select>
+                  </div>
+                </div>
+
+                <!-- 🛡️ PROTEKSI PIN GURU (SETUP & LOGIN AWAL) -->
+                <div class="field" id="su-pin-box" style="display:none;background:#f0fdf4;padding:12px 14px;border-radius:10px;border:1.5px solid #10b981;margin-bottom:14px">
+                  <label style="color:#065f46;font-weight:700;font-size:12.5px;display:flex;align-items:center;gap:6px">
+                    <span>🔐</span> Masukkan PIN Rahasia Guru:
+                  </label>
+                  <div style="position:relative;margin-top:6px">
+                    <input id="su-pin" type="password" placeholder="Ketik PIN rahasia Anda..." maxlength="12" autocomplete="off"
+                      onkeydown="if(event.key==='Enter') saveSetup()"
+                      style="width:100%;padding:9px 40px 9px 12px;font-size:14px;font-weight:700;letter-spacing:2px;border-radius:8px;border:1.5px solid #10b981;background:#fff;color:#064e3b" />
+                    <button type="button" onclick="toggleSetupPinVisibility()" id="btn-toggle-su-pin"
+                      style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:16px;color:#059669;padding:4px" title="Lihat/Sembunyikan PIN">👁️</button>
+                  </div>
+                  <div id="su-pin-hint" style="font-size:11.5px;color:#047857;margin-top:6px;font-weight:600;display:none"></div>
+                  <div id="su-pin-error" style="color:#dc2626;font-size:11.5px;margin-top:6px;display:none;font-weight:600"></div>
+                  <p style="font-size:11px;color:#047857;margin-top:6px;line-height:1.4">
+                    🛡️ <b>Proteksi Keamanan:</b> Wajib memasukkan PIN untuk memastikan hanya guru bersangkutan yang dapat mengakses sistem ini.
+                  </p>
+                </div>
+
+                <button class="btn-primary w-full" id="btn-su-submit" onclick="saveSetup()">Simpan &amp; Mulai Mengajar 🚀</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============ DASHBOARD ============ -->
+        <section class="page" id="page-dashboard">
+          <div class="section-intro">
+            <h2>Halo, <span id="d-nama">Guru</span> 👋</h2>
+            <p>Berikut ringkasan sistem absensi biometrik dan kehadiran hari ini.</p>
+          </div>
+
+          <div class="kpi-row">
+            <div class="kpi-card kpi-green">
+              <div class="kpi-icon">📚</div>
+              <div class="kpi-body">
+                <div class="kpi-num" id="k-mapel">0</div>
+                <div class="kpi-lbl">Mata Pelajaran</div>
+              </div>
+            </div>
+            <div class="kpi-card kpi-blue">
+              <div class="kpi-icon">👥</div>
+              <div class="kpi-body">
+                <div class="kpi-num" id="k-siswa">0</div>
+                <div class="kpi-lbl">Total Siswa</div>
+              </div>
+            </div>
+            <div class="kpi-card kpi-amber">
+              <div class="kpi-icon">📝</div>
+              <div class="kpi-body">
+                <div class="kpi-num" id="k-pertemuan">0</div>
+                <div class="kpi-lbl">Total Sesi Absensi</div>
+              </div>
+            </div>
+            <div class="kpi-card kpi-teal">
+              <div class="kpi-icon">✅</div>
+              <div class="kpi-body">
+                <div class="kpi-num" id="k-hadir">0</div>
+                <div class="kpi-lbl">Hadir Hari Ini</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Quick Shortcuts Banner -->
+          <div class="box mb-3" style="background:linear-gradient(135deg, #1c3d2c 0%, #2f6142 100%);color:#fff">
+            <div class="box-body" style="padding:18px 22px">
+              <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:15px">
+                <div style="display:flex;align-items:center;gap:16px">
+                  <img src="img/logo_smkn10.png" alt="Logo SMKN 10 Kolaka" style="width:50px;height:50px;object-fit:contain;filter:drop-shadow(0 4px 8px rgba(0,0,0,0.35));flex-shrink:0" />
+                  <div>
+                    <div style="font-size:18px;font-weight:700">🚀 Akses Cepat Presensi Biometrik &amp; QR</div>
+                    <p style="font-size:13px;opacity:0.9;margin-top:4px">
+                      Gunakan kamera untuk scan kartu QR siswa, scan wajah otomatis, atau presensi harian guru.
+                    </p>
+                  </div>
+                </div>
+                <div style="display:flex;gap:10px;flex-wrap:wrap">
+                  <button class="btn-primary" style="background:#fef3dc;color:#b07d2a;font-weight:700;border:none"
+                    onclick="showPage('absensi')">
+                    📷 Buka Scanner Siswa
+                  </button>
+                  <button class="btn-primary" style="background:#ffffff;color:#1c3d2c;font-weight:700;border:none"
+                    onclick="showPage('absen-guru')">
+                    🕒 Presensi Guru (QR)
+                  </button>
+                  <button class="btn-outline" style="border-color:#ffffff;color:#ffffff" onclick="showPage('kartu')">
+                    🪪 Cetak Kartu QR
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Sorotan Jadwal Hari Ini (Warna Eksklusif Akun Guru) -->
+          <div id="dash-schedule-widget" class="mb-3"></div>
+
+          <div class="two-col">
+            <div class="box">
+              <div class="box-head">📅 Pertemuan Terakhir</div>
+              <div id="dash-recent">
+                <p class="empty">Belum ada data absensi.</p>
+              </div>
+            </div>
+            <div class="box">
+              <div class="box-head">🎓 Konsentrasi Keahlian SMKN 10 Kolaka</div>
+              <div class="jurusan-list">
+                <div class="jcard jcard-blue">
+                  <span class="jtag">TJKT</span>
+                  <div>
+                    <div class="jname">Teknik Jaringan Komputer &amp; Telekomunikasi</div>
+                    <div class="jmeta">3 Tahun · Kelas X – XII</div>
+                  </div>
+                </div>
+                <div class="jcard jcard-green">
+                  <span class="jtag">MPLB</span>
+                  <div>
+                    <div class="jname">Manajemen Perkantoran &amp; Layanan Bisnis</div>
+                    <div class="jmeta">3 Tahun · Kelas X – XII</div>
+                  </div>
+                </div>
+                <div class="jcard jcard-amber">
+                  <span class="jtag">GP</span>
+                  <div>
+                    <div class="jname">Geologi Pertambangan</div>
+                    <div class="jmeta">4 Tahun · Kelas X – XIII</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============ INPUT ABSENSI ============ -->
+        <section class="page" id="page-absensi">
+          <div class="section-intro">
+            <h2>Input Absensi &amp; Biometrik</h2>
+            <p>Pilih mata pelajaran dan kelas, lalu isi kehadiran via manual, Scan QR Code, atau Scan Wajah.</p>
+          </div>
+
+          <div class="box mb-3 no-print">
+            <div class="box-head">🔎 Pilih Sesi Pembelajaran</div>
+            <div class="box-body">
+              <div class="field-row">
+                <div class="field" style="flex:1.2">
+                  <label>Guru Pengampu</label>
+                  <select id="ab-guru" onchange="onAbGuruChange()">
+                    <option value="ACTIVE">⭐ Guru Aktif</option>
+                  </select>
+                </div>
+                <div class="field" style="flex:1.5">
+                  <label>Mata Pelajaran (Diampu Guru)</label>
+                  <select id="ab-mapel" onchange="onAbMapelChange()">
+                    <option value="">-- Pilih Mata Pelajaran --</option>
+                  </select>
+                </div>
+                <div class="field" style="flex:1">
+                  <label>Kelas yang Diajar</label>
+                  <select id="ab-kelas" onchange="onAbKelasChange()">
+                    <option value="">-- Pilih Kelas --</option>
+                  </select>
+                </div>
+              </div>
+              <div class="field-row">
+                <div class="field">
+                  <label>Tanggal</label>
+                  <input type="date" id="ab-tgl" onchange="if(document.getElementById('ab-kelas').value) loadAbsensiTable()" />
+                </div>
+                <div class="field">
+                  <label>Jam Masuk</label>
+                  <input type="time" id="ab-jin" />
+                </div>
+                <div class="field">
+                  <label>Jam Keluar</label>
+                  <input type="time" id="ab-jout" />
+                </div>
+                <div class="field" style="max-width:120px">
+                  <label>Pertemuan ke-</label>
+                  <input type="number" id="ab-pert" min="1" value="1" onchange="if(document.getElementById('ab-kelas').value) loadAbsensiTable()" />
+                </div>
+              </div>
+              <button class="btn-primary" onclick="loadAbsensiTable()">📋 Buka Sesi Daftar Hadir</button>
+            </div>
+          </div>
+
+          <div class="box" id="ab-table-box" style="display:none">
+            <div class="box-head"
+              style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+              <span id="ab-table-head">Daftar Hadir</span>
+              <div class="mode-tabs">
+                <button class="mode-tab-btn active" id="btn-mode-manual" onclick="switchAbsensiMode('manual')">
+                  <span class="btn-liquid-icon">📝</span>
+                  <span>Daftar Hadir Manual</span>
+                  <span class="liquid-dots">• • •</span>
+                </button>
+                <button class="mode-tab-btn" id="btn-mode-qr" onclick="switchAbsensiMode('qr')">
+                  <span class="btn-liquid-icon">📷</span>
+                  <span>Scan QR Siswa</span>
+                  <span class="liquid-dots">• • •</span>
+                </button>
+                <button class="mode-tab-btn" id="btn-mode-face" onclick="switchAbsensiMode('face')">
+                  <span class="btn-liquid-icon">👤</span>
+                  <span>Scan Wajah Siswa</span>
+                  <span class="liquid-dots">• • •</span>
+                </button>
+              </div>
+            </div>
+
+            <div class="box-body">
+              <!-- PANEL 1: MANUAL TABLE -->
+              <div id="ab-panel-manual">
+                <div class="quick-actions">
+                  <button class="chip chip-green" onclick="setAllStatus('H')">✅ Semua Hadir</button>
+                  <button class="chip chip-red" onclick="setAllStatus('A')">❌ Semua Alpha</button>
+                  <button class="chip chip-gray" onclick="clearAllStatus()">🔄 Reset</button>
+                </div>
+                <div class="tbl-wrap">
+                  <table class="dtbl" id="ab-tbl">
+                    <thead>
+                      <tr>
+                        <th>No</th>
+                        <th>Foto/Bukti</th>
+                        <th>Nama Siswa</th>
+                        <th>Status</th>
+                        <th>Jam Masuk</th>
+                        <th>Jam Keluar</th>
+                        <th>Keterangan</th>
+                      </tr>
+                    </thead>
+                    <tbody id="ab-tbody"></tbody>
+                  </table>
+                </div>
+                <div class="btn-row mt-3">
+                  <button class="btn-primary" onclick="simpanAbsensi()">💾 Simpan Absensi</button>
+                  <button class="btn-outline" onclick="exportPertemuan()">📥 Export Excel Pertemuan Ini</button>
+                </div>
+              </div>
+
+              <!-- PANEL 2: QR SCANNER SISWA -->
+              <div id="ab-panel-qr" style="display:none">
+                <div class="scanner-wrap">
+                  <div class="scanner-left">
+                    <div class="scanner-ctrl-bar">
+                      <div class="scanner-title">
+                        <span class="live-dot"></span> Kamera Scanner QR Code Siswa
+                      </div>
+                      <div class="scanner-actions">
+                        <button class="btn-sm btn-primary" id="btn-start-qr" onclick="startStudentQrScanner()">▶️ Buka
+                          Kamera</button>
+                        <button class="btn-sm btn-danger" id="btn-stop-qr" onclick="stopStudentQrScanner()"
+                          style="display:none">⏹️ Tutup Kamera</button>
+                        <button class="btn-sm btn-outline" onclick="toggleQrSound()" id="btn-qr-sound">🔊 Suara:
+                          ON</button>
+                      </div>
+                    </div>
+
+                    <div class="viewport-card">
+                      <div id="qr-student-reader" class="qr-camera-box"></div>
+                      <div class="viewport-placeholder" id="qr-placeholder">
+                        <div class="ph-icon">📷</div>
+                        <div class="ph-title">Kamera QR Belum Aktif</div>
+                        <div class="ph-desc">Arahkan kartu pelajar digital atau kode QR siswa ke depan kamera untuk
+                          mencatat kehadiran otomatis.</div>
+                        <button class="btn-primary btn-sm mt-2" onclick="startStudentQrScanner()">Aktifkan Kamera
+                          Sekarang</button>
+                      </div>
+                    </div>
+
+                    <div class="scan-status-alert" id="qr-status-box" style="display:none"></div>
+                  </div>
+
+                  <div class="scanner-right">
+                    <div class="kpi-mini-grid">
+                      <div class="mini-kpi kpi-green">
+                        <div class="mini-num" id="qr-stat-hadir">0</div>
+                        <div class="mini-lbl">Hadir</div>
+                      </div>
+                      <div class="mini-kpi kpi-amber">
+                        <div class="mini-num" id="qr-stat-belum">0</div>
+                        <div class="mini-lbl">Belum Hadir</div>
+                      </div>
+                      <div class="mini-kpi kpi-blue">
+                        <div class="mini-num" id="qr-stat-total">0</div>
+                        <div class="mini-lbl">Total Siswa</div>
+                      </div>
+                    </div>
+
+                    <div class="feed-box">
+                      <div class="feed-head">
+                        <span>⚡ Aktivitas Scan QR Real-time</span>
+                        <button class="chip chip-gray" style="font-size:11px"
+                          onclick="clearScanLogs()">Bersihkan</button>
+                      </div>
+                      <div class="feed-list" id="qr-scan-logs">
+                        <div class="empty-feed">Tunjukkan kartu QR siswa ke kamera untuk mencatat absensi.</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- PANEL 3: SCAN WAJAH SISWA -->
+              <div id="ab-panel-face" style="display:none">
+                <div class="scanner-wrap">
+                  <div class="scanner-left">
+                    <div class="scanner-ctrl-bar">
+                      <div class="scanner-title">
+                        <span class="live-dot" style="background:#0ea5e9"></span> Biometric Face Recognition
+                      </div>
+                      <div class="scanner-actions">
+                        <button class="btn-sm btn-primary" id="btn-start-face" onclick="startFaceScanner()">▶️ Buka
+                          Kamera Wajah</button>
+                        <button class="btn-sm btn-danger" id="btn-stop-face" onclick="stopFaceScanner()"
+                          style="display:none">⏹️ Tutup Kamera</button>
+                        <label class="auto-scan-toggle">
+                          <input type="checkbox" id="face-auto-verify" checked />
+                          <span>Verifikasi Otomatis</span>
+                        </label>
+                      </div>
+                    </div>
+
+                    <div class="viewport-card biometric-card">
+                      <div class="video-container" id="face-video-container">
+                        <video id="face-video" autoplay playsinline muted></video>
+                        <canvas id="face-canvas"></canvas>
+                        <div class="biometric-hud" id="face-hud">
+                          <div class="hud-corner tl"></div>
+                          <div class="hud-corner tr"></div>
+                          <div class="hud-corner bl"></div>
+                          <div class="hud-corner br"></div>
+                          <div class="face-oval-frame" id="face-oval">
+                            <div class="oval-pulse"></div>
+                          </div>
+                          <div class="biometric-scan-line"></div>
+                          <div class="hud-readout" id="face-readout">Posisikan wajah di dalam oval</div>
+                        </div>
+                      </div>
+                      <div class="viewport-placeholder" id="face-placeholder">
+                        <div class="ph-icon">👤</div>
+                        <div class="ph-title">Kamera Biometrik Belum Aktif</div>
+                        <div class="ph-desc">Gunakan kamera untuk deteksi wajah otomatis siswa atau ambil foto bukti
+                          kehadiran saat ini.</div>
+                        <button class="btn-primary btn-sm mt-2" onclick="startFaceScanner()">Buka Kamera Wajah</button>
+                      </div>
+                    </div>
+
+                    <div class="face-manual-bar mt-2">
+                      <div class="field" style="margin:0;flex:2">
+                        <select id="face-manual-student">
+                          <option value="">-- Atau Pilih Siswa Manual --</option>
+                        </select>
+                      </div>
+                      <button class="btn-primary btn-sm" onclick="captureManualFaceAttendance()">
+                        📸 Rekam Bukti Hadir Wajah
+                      </button>
+                    </div>
+
+                    <div class="scan-status-alert" id="face-status-box" style="display:none"></div>
+                  </div>
+
+                  <div class="scanner-right">
+                    <div class="kpi-mini-grid">
+                      <div class="mini-kpi kpi-green">
+                        <div class="mini-num" id="face-stat-hadir">0</div>
+                        <div class="mini-lbl">Hadir Wajah</div>
+                      </div>
+                      <div class="mini-kpi kpi-teal">
+                        <div class="mini-num" id="face-stat-enrolled">0</div>
+                        <div class="mini-lbl">Wajah Terdaftar</div>
+                      </div>
+                      <div class="mini-kpi kpi-blue">
+                        <div class="mini-num" id="face-stat-total">0</div>
+                        <div class="mini-lbl">Total Siswa</div>
+                      </div>
+                    </div>
+
+                    <div class="feed-box">
+                      <div class="feed-head">
+                        <span>📸 Galeri Bukti Kehadiran Hari Ini</span>
+                      </div>
+                      <div class="face-gallery-feed" id="face-proof-gallery">
+                        <div class="empty-feed">Belum ada foto absensi wajah yang diambil.</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============ REKAP ============ -->
+        <section class="page" id="page-rekap">
+          <div class="section-intro">
+            <h2>Rekap Absensi Siswa</h2>
+            <p>Lihat rekapitulasi kehadiran siswa per kelas dan mata pelajaran.</p>
+          </div>
+          <div class="box mb-3 no-print">
+            <div class="box-head">🔍 Filter</div>
+            <div class="box-body">
+              <div class="field-row">
+                <div class="field">
+                  <label>Guru Pengampu</label>
+                  <select id="rk-guru" onchange="onRkGuruChange()">
+                    <option value="ACTIVE">⭐ Guru Aktif</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label>Mata Pelajaran</label>
+                  <select id="rk-mapel" onchange="tampilRekap()">
+                    <option value="">Semua Mapel</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label>Jurusan</label>
+                  <select id="rk-jurusan" onchange="tampilRekap()">
+                    <option value="">Semua Jurusan</option>
+                    <option value="TJKT">TJKT</option>
+                    <option value="MPLB">MPLB</option>
+                    <option value="GP">GP</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label>Tingkat</label>
+                  <select id="rk-tingkat" onchange="tampilRekap()">
+                    <option value="">Semua Tingkat</option>
+                    <option>X</option>
+                    <option>XI</option>
+                    <option>XII</option>
+                    <option>XIII</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label>Bulan</label>
+                  <select id="rk-bulan" onchange="tampilRekap()">
+                    <option value="">Semua Bulan</option>
+                    <option value="1">Januari</option>
+                    <option value="2">Februari</option>
+                    <option value="3">Maret</option>
+                    <option value="4">April</option>
+                    <option value="5">Mei</option>
+                    <option value="6">Juni</option>
+                    <option value="7">Juli</option>
+                    <option value="8">Agustus</option>
+                    <option value="9">September</option>
+                    <option value="10">Oktober</option>
+                    <option value="11">November</option>
+                    <option value="12">Desember</option>
+                  </select>
+                </div>
+              </div>
+              <div class="btn-row">
+                <button class="btn-primary" onclick="tampilRekap()">🔍 Tampilkan</button>
+                <button class="btn-outline" onclick="exportRekap()">📥 Export Excel</button>
+                <button class="btn-danger" onclick="hapusSemuaAbsensi()" title="Hanya menghapus riwayat data absensi guru aktif, data rekapan guru lain tetap aman & tidak terhapus">🗑️ Hapus Semua Data Absensi Saya</button>
+              </div>
+            </div>
+          </div>
+          <div id="rk-result"></div>
+        </section>
+
+        <!-- ============ ABSENSI GURU (QR CODE) ============ -->
+        <section class="page" id="page-absen-guru">
+          <div class="section-intro">
+            <h2>Presensi Harian Guru &amp; Tenaga Pendidik</h2>
+            <p>Sistem presensi kedatangan dan kepulangan guru SMKN 10 Kolaka menggunakan QR Code.</p>
+          </div>
+
+          <div class="card-tabs mb-3 no-print">
+            <button class="card-tab-btn active" id="tab-btn-abg-scan" onclick="switchAbgTab('scan')">
+              <span class="btn-liquid-icon">📷</span>
+              <span>Scanner Presensi Guru</span>
+              <span class="liquid-dots">• • •</span>
+            </button>
+            <button class="card-tab-btn" id="tab-btn-abg-myqr" onclick="switchAbgTab('myqr')">
+              <span class="btn-liquid-icon">🪪</span>
+              <span>QR Presensi Saya</span>
+              <span class="liquid-dots">• • •</span>
+            </button>
+            <button class="card-tab-btn" id="tab-btn-abg-rekap" onclick="switchAbgTab('rekap')">
+              <span class="btn-liquid-icon">📋</span>
+              <span>Rekap Presensi Guru</span>
+              <span class="liquid-dots">• • •</span>
+            </button>
+          </div>
+
+          <!-- TAB 1: SCANNER GURU -->
+          <div id="abg-tab-scan">
+            <div class="scanner-wrap">
+              <div class="scanner-left">
+                <div class="scanner-ctrl-bar">
+                  <div class="scanner-title">
+                    <span class="live-dot" style="background:#10b981"></span> Scanner Kartu Guru SMKN 10 Kolaka
+                  </div>
+                  <div class="scanner-actions">
+                    <button class="btn-sm btn-primary" id="btn-start-abg" onclick="startTeacherScanner()">▶️ Buka
+                      Kamera</button>
+                    <button class="btn-sm btn-danger" id="btn-stop-abg" onclick="stopTeacherScanner()"
+                      style="display:none">⏹️ Tutup Kamera</button>
+                  </div>
+                </div>
+
+                <div class="viewport-card">
+                  <div id="abg-qr-reader" class="qr-camera-box"></div>
+                  <div class="viewport-placeholder" id="abg-placeholder">
+                    <div class="ph-icon">🏫</div>
+                    <div class="ph-title">Kamera Presensi Guru Siap</div>
+                    <div class="ph-desc">Tunjukkan Kartu Guru atau QR Code di layar HP Bapak/Ibu guru ke kamera.</div>
+                    <button class="btn-primary btn-sm mt-2" onclick="startTeacherScanner()">Aktifkan Scanner
+                      Presensi</button>
+                  </div>
+                </div>
+
+                <div class="scan-status-alert" id="abg-status-box" style="display:none"></div>
+
+                <div class="box mt-3 no-print" style="border:1.5px solid var(--border)">
+                  <div class="box-head"
+                    style="background:#f0fdf4;color:#166534;display:flex;justify-content:space-between;align-items:center">
+                    <span>⚡ Presensi Langsung Guru Login</span>
+                    <span class="chip chip-green" style="font-size:10.5px">Guru Aktif</span>
+                  </div>
+                  <div class="box-body">
+                    <div
+                      style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px;padding:12px 14px;background:#f8fafc;border-radius:8px;border:1px solid #e2e8f0">
+                      <div style="display:flex;align-items:center;gap:10px">
+                        <div
+                          style="width:40px;height:40px;border-radius:50%;background:#dbeafe;color:#1e40af;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">
+                          👨‍🏫
+                        </div>
+                        <div>
+                          <div style="font-weight:700;font-size:13.5px;color:#0f172a" id="abg-active-teacher-name">Nama
+                            Guru</div>
+                          <div style="font-size:11.5px;color:#64748b" id="abg-active-teacher-nip">NIP -</div>
+                        </div>
+                      </div>
+                      <div style="text-align:right" id="abg-active-teacher-status-box">
+                        <span class="chip chip-amber" id="abg-active-teacher-badge">Belum Presensi Hari Ini</span>
+                      </div>
+                    </div>
+
+                    <div class="btn-row" style="gap:10px;flex-wrap:wrap">
+                      <button class="btn-primary" style="flex:1;min-width:160px;padding:10px"
+                        onclick="selfTeacherAttendance('MASUK')">
+                        🌅 Catat Hadir (Masuk)
+                      </button>
+                      <button class="btn-outline"
+                        style="flex:1;min-width:160px;padding:10px;border-color:var(--blue);color:var(--blue)"
+                        onclick="selfTeacherAttendance('PULANG')">
+                        🌇 Catat Pulang
+                      </button>
+                    </div>
+                    <p class="form-hint mt-2">
+                      Presensi otomatis tercatat sesuai profil guru yang login di atas tanpa perlu memilih nama lagi.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="scanner-right">
+                <div class="kpi-mini-grid">
+                  <div class="mini-kpi kpi-green">
+                    <div class="mini-num" id="abg-kpi-masuk">0</div>
+                    <div class="mini-lbl">Guru Hadir</div>
+                  </div>
+                  <div class="mini-kpi kpi-teal">
+                    <div class="mini-num" id="abg-kpi-pulang">0</div>
+                    <div class="mini-lbl">Sudah Pulang</div>
+                  </div>
+                  <div class="mini-kpi kpi-blue">
+                    <div class="mini-num" id="abg-kpi-total">0</div>
+                    <div class="mini-lbl">Total Guru SK</div>
+                  </div>
+                </div>
+
+                <div class="feed-box">
+                  <div class="feed-head">
+                    <span>🕒 Presensi Guru Hari Ini</span>
+                  </div>
+                  <div class="feed-list" id="abg-today-feed">
+                    <div class="empty-feed">Belum ada aktivitas presensi guru hari ini.</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- TAB 2: QR GURU SAYA -->
+          <div id="abg-tab-myqr" style="display:none">
+            <div class="box" style="max-width:550px;margin:0 auto">
+              <div class="box-head">🪪 QR Presensi Mandiri Saya</div>
+              <div class="box-body" style="text-align:center;padding:24px">
+                <div id="my-teacher-qr-box" style="display:flex;justify-content:center;margin-bottom:15px"></div>
+                <h3 id="my-teacher-name" style="color:var(--sidebar-bg);margin-bottom:4px">Nama Guru</h3>
+                <p id="my-teacher-nip" style="color:var(--text-mid);font-size:13px;margin-bottom:16px">NIP -</p>
+                <div class="digital-clock" id="abg-clock">--:--:-- WITA</div>
+                <div class="btn-row" style="justify-content:center;margin-top:16px;gap:12px">
+                  <button class="btn-primary" onclick="selfTeacherAttendance('MASUK')">
+                    🌅 Absen Masuk Sekarang
+                  </button>
+                  <button class="btn-outline" onclick="selfTeacherAttendance('PULANG')">
+                    🌇 Absen Pulang Sekarang
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- TAB 3: REKAP GURU -->
+          <div id="abg-tab-rekap" style="display:none">
+            <div class="box mb-3 no-print">
+              <div class="box-head">🔍 Filter Presensi Guru</div>
+              <div class="box-body">
+                <div class="field-row">
+                  <div class="field">
+                    <label>Tanggal</label>
+                    <input type="date" id="abg-filter-date" onchange="renderTeacherRekap()" />
+                  </div>
+                </div>
+                <div class="btn-row">
+                  <button class="btn-primary btn-sm" onclick="renderTeacherRekap()">Tampilkan</button>
+                  <button class="btn-outline btn-sm" onclick="exportTeacherAttendance()">📥 Export Excel Presensi
+                    Guru</button>
+                  <button class="btn-danger btn-sm" onclick="clearTeacherAttendance()">🗑️ Hapus Riwayat Presensi
+                    Saya</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="box">
+              <div class="box-head" id="abg-rekap-head">Daftar Kehadiran Guru</div>
+              <div class="box-body">
+                <div class="tbl-wrap">
+                  <table class="dtbl">
+                    <thead>
+                      <tr>
+                        <th>No</th>
+                        <th>Tanggal</th>
+                        <th>Nama Guru</th>
+                        <th>NIP</th>
+                        <th>Jam Masuk</th>
+                        <th>Jam Pulang</th>
+                        <th>Status</th>
+                        <th>Metode</th>
+                        <th>Aksi</th>
+                      </tr>
+                    </thead>
+                    <tbody id="abg-rekap-tbody"></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============ KARTU & QR CODE ============ -->
+        <section class="page" id="page-kartu">
+          <div class="section-intro">
+            <h2>Kartu Identitas Digital &amp; QR Code</h2>
+            <p>Cetak Kartu Pelajar Siswa dan Kartu Guru SMKN 10 Kolaka dengan kode QR presensi otomatis.</p>
+          </div>
+
+          <div class="card-tabs mb-3 no-print">
+            <button class="card-tab-btn active" id="tab-btn-kartu-siswa" onclick="switchKartuTab('siswa')">
+              <span class="btn-liquid-icon">🎓</span>
+              <span>Kartu Pelajar Siswa</span>
+              <span class="liquid-dots">• • •</span>
+            </button>
+            <button class="card-tab-btn" id="tab-btn-kartu-guru" onclick="switchKartuTab('guru')">
+              <span class="btn-liquid-icon">👨‍🏫</span>
+              <span>Kartu Guru &amp; Tenaga Pendidik</span>
+              <span class="liquid-dots">• • •</span>
+            </button>
+          </div>
+
+          <!-- TAB 1: KARTU SISWA -->
+          <div id="tab-kartu-siswa">
+            <div class="box mb-3 no-print">
+              <div class="box-head">🔍 Filter Rombel Kelas Siswa</div>
+              <div class="box-body">
+                <div class="field-row">
+                  <div class="field">
+                    <label>Jurusan</label>
+                    <select id="kt-jurusan" onchange="renderKartuSiswa()">
+                      <option value="ALL">Semua Jurusan</option>
+                      <option value="TJKT">TJKT (Teknik Jaringan Komputer &amp; Telekomunikasi)</option>
+                      <option value="MPLB">MPLB (Manajemen Perkantoran &amp; Layanan Bisnis)</option>
+                      <option value="GP">GP (Geologi Pertambangan)</option>
+                    </select>
+                  </div>
+                  <div class="field">
+                    <label>Tingkat / Kelas</label>
+                    <select id="kt-tingkat" onchange="renderKartuSiswa()">
+                      <option value="ALL">Semua Tingkat (X, XI, XII, XIII)</option>
+                      <option value="X">Kelas X</option>
+                      <option value="XI">Kelas XI</option>
+                      <option value="XII">Kelas XII</option>
+                      <option value="XIII">Kelas XIII</option>
+                    </select>
+                  </div>
+                  <div class="field" style="flex:2">
+                    <label>Cari Nama Siswa</label>
+                    <input type="text" id="kt-search" placeholder="Ketik nama siswa..." oninput="renderKartuSiswa()" />
+                  </div>
+                </div>
+                <div class="btn-row">
+                  <button class="btn-primary" onclick="printAllStudentCards()">
+                    🖨️ Cetak Semua Kartu Tampil (Format A4)
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="cards-gallery-grid" id="student-cards-container"></div>
+          </div>
+
+          <!-- TAB 2: KARTU GURU -->
+          <div id="tab-kartu-guru" style="display:none">
+            <div class="box mb-3 no-print">
+              <div class="box-head">👤 Pilih Data Guru</div>
+              <div class="box-body">
+                <div class="field-row">
+                  <div class="field" style="flex:2">
+                    <label>Pilih Guru SMKN 10 Kolaka:</label>
+                    <select id="kt-guru-select" onchange="renderTeacherCard(this.value)">
+                      <option value="CURRENT">-- Guru Aktif Saat Ini --</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="btn-row">
+                  <button class="btn-primary" onclick="printSingleTeacherCard()">🖨️ Cetak Kartu Guru</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="teacher-card-preview-wrap">
+              <div id="teacher-card-container"></div>
+            </div>
+          </div>
+        </section>
+
+
+        <!-- ============ PENILAIAN & RAPOR AKADEMIK ============ -->
+        <section class="page" id="page-penilaian">
+          <div class="section-intro">
+            <h2>Penilaian Akademik &amp; Rapor Siswa</h2>
+            <p>Kelola dan hitung nilai komprehensif siswa: Kehadiran Presensi, Tugas, Praktek Kejuruan, Ekstrakurikuler
+              (Pramuka &amp; PMR), UTS, UAS, dan Ujian Sekolah.</p>
+          </div>
+
+          <!-- Filter Box -->
+          <div class="penilaian-filter-box no-print">
+            <div class="field-row">
+              <div class="field" style="flex:1.5">
+                <label>Guru Pengampu (Aktif):</label>
+                <div id="pen-active-guru"
+                  style="padding:8px 12px;background:#f8fafc;border:1px solid #cbd5e1;border-radius:6px;font-weight:700;color:#0f172a;display:flex;align-items:center;gap:8px">
+                  <span>👨‍🏫</span> <span id="pen-guru-name-lbl">Guru Aktif</span>
+                </div>
+                <input type="hidden" id="pen-guru-select" value="ACTIVE" />
+              </div>
+              <div class="field" style="flex:1.5">
+                <label>Mata Pelajaran:</label>
+                <select id="pen-mapel-select" onchange="onPenMapelChange()">
+                  <!-- Populated dynamically -->
+                </select>
+              </div>
+              <div class="field" style="flex:1">
+                <label>Kelas / Rombel:</label>
+                <select id="pen-kelas-select" onchange="renderPenilaianTable()">
+                  <!-- Populated dynamically -->
+                </select>
+              </div>
+              <div class="field" style="flex:0.8">
+                <label>KKM Mapel:</label>
+                <input type="number" id="pen-kkm" value="75" min="50" max="100" onchange="recalcAllPenilaian()"
+                  style="font-weight:700" />
+              </div>
+              <div class="field" style="flex:1;justify-content:center">
+                <label style="display:flex;align-items:center;gap:6px;cursor:pointer;margin-top:18px;font-weight:700">
+                  <input type="checkbox" id="pen-has-praktek" checked onchange="togglePraktekColumn()" />
+                  <span>Mapel Ada Praktek</span>
+                </label>
+              </div>
+            </div>
+
+            <div class="btn-row" style="margin-top:14px;justify-content:space-between">
+              <div style="display:flex;gap:10px;flex-wrap:wrap">
+                <button class="btn-primary" onclick="renderPenilaianTable()">
+                  🔍 Tampilkan Nilai
+                </button>
+                <button class="btn-outline" onclick="syncKehadiranOtomatis()"
+                  title="Hitung persentase kehadiran otomatis dari rekaman presensi biometrik & QR siswa">
+                  ⚡ Hitung Otomatis Kehadiran
+                </button>
+                <button class="btn-primary" style="background:#15803d" onclick="simpanNilaiKelas()">
+                  💾 Simpan Nilai
+                </button>
+              </div>
+              <div style="display:flex;gap:10px;flex-wrap:wrap">
+                <button class="btn-outline" onclick="exportNilaiExcel()">
+                  📥 Export Excel (.xlsx)
+                </button>
+                <button class="btn-outline" onclick="printLedgerKelas()">
+                  🖨️ Cetak Ledger Kelas
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Ringkasan Statistik Kelas -->
+          <div class="kpi-mini-grid mb-3" id="pen-kpi-summary">
+            <div class="mini-kpi">
+              <div class="mini-num" id="pen-kpi-avg" style="color:var(--emerald-600)">0.0</div>
+              <div class="mini-lbl">Rata-Rata Kelas</div>
+            </div>
+            <div class="mini-kpi">
+              <div class="mini-num" id="pen-kpi-tuntas" style="color:#15803d">0</div>
+              <div class="mini-lbl">Siswa Tuntas</div>
+            </div>
+            <div class="mini-kpi">
+              <div class="mini-num" id="pen-kpi-remedial" style="color:#b91c1c">0</div>
+              <div class="mini-lbl">Remedial / Belum Tuntas</div>
+            </div>
+          </div>
+
+          <!-- Tabel Input Nilai Komprehensif -->
+          <div class="box" id="pen-table-container">
+            <div class="box-head">
+              <span id="pen-table-title">📊 Buku Nilai Kelas</span>
+              <span style="font-size:12px;font-weight:600;color:var(--text-muted)" id="pen-formula-desc">
+                Bobot: Kehadiran (15%), Tugas (15%), Praktek (25%), Ekskul (10%), UTS (15%), UAS (20%)
+              </span>
+            </div>
+            <div class="box-body" style="padding:14px">
+              <div class="tbl-wrap">
+                <table class="dtbl tbl-penilaian" id="tbl-penilaian">
+                  <thead>
+                    <tr>
+                      <th style="width:40px">No</th>
+                      <th style="text-align:left;min-width:180px">Nama Siswa</th>
+                      <th style="width:90px" title="Nilai & Persentase Kehadiran">Kehadiran (%)</th>
+                      <th style="width:80px" title="Nilai Tugas / Portofolio">Tugas</th>
+                      <th style="width:80px" class="col-praktek" title="Nilai Kinerja / Praktikum Kejuruan">Praktek</th>
+                      <th style="width:95px" title="Ekstrakurikuler Wajib Pramuka">Pramuka</th>
+                      <th style="width:95px" title="Ekstrakurikuler Palang Merah Remaja (PMR)">PMR</th>
+                      <th style="width:80px" title="Ulangan Tengah Semester">UTS</th>
+                      <th style="width:80px" title="Ujian Akhir Semester">UAS</th>
+                      <th style="width:80px" title="Ujian Sekolah">Ujian Sekolah</th>
+                      <th style="width:85px" title="Nilai Akhir Terkalkulasi">Nilai Akhir</th>
+                      <th style="width:65px">Predikat</th>
+                      <th style="width:105px">Status</th>
+                      <th style="width:95px" class="no-print">Rapor</th>
+                    </tr>
+                  </thead>
+                  <tbody id="pen-table-body">
+                    <!-- Populated dynamically -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============ JADWAL & ROSTER SK ============ -->
+        <section class="page" id="page-roster">
+          <div class="section-intro">
+            <h2>Jadwal Pelajaran &amp; Roster SK</h2>
+            <p>Berdasarkan SK Pembagian Tugas Semester Ganjil T.A. 2026/2027 SMKN 10 Kolaka.</p>
+          </div>
+
+          <!-- SK Management Action Toolbar -->
+          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px">
+            <button class="btn-primary btn-sm" onclick="openSKUploadModal()" style="display:inline-flex;align-items:center;gap:6px">
+              <span>📤</span> Upload SK &amp; Buat Jadwal Otomatis
+            </button>
+            <button class="btn-outline btn-sm" onclick="downloadSKTemplateExcel()" style="display:inline-flex;align-items:center;gap:6px">
+              <span>📥</span> Unduh Format Template SK (.xlsx)
+            </button>
+            <button class="btn-outline btn-sm" id="roster-reset-sk-btn" onclick="resetSKDataToDefault()" style="display:none;color:#dc2626;border-color:#fca5a5;align-items:center;gap:6px">
+              <span>🔄</span> Kembalikan SK Default
+            </button>
+          </div>
+
+          <div class="box mb-3" style="background:#eef6f0;border-left:4px solid var(--green)">
+            <div class="box-body" style="padding:14px 18px">
+              <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+                <div>
+                  <strong id="roster-sk-title">📜 Lampiran 4 SK Beban Mengajar No: 034/ /SMKN 10 KLK/VII/2026</strong>
+                  <div style="font-size:12px;color:var(--text-mid);margin-top:2px" id="roster-sk-kepsek">
+                    Kepala Sekolah: <strong>TABING, S.Pd,. M.Pd</strong> (NIP Disamarkan 🛡️)
+                  </div>
+                </div>
+                <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                  <label style="font-size:12px;font-weight:700;color:var(--green)">👤 Sorot Jadwal Guru:</label>
+                  <select id="roster-teacher-select" onchange="onRosterTeacherChange(this.value)"
+                    style="padding:6px 10px;border-radius:6px;border:1px solid #4a8c60;font-weight:600;font-size:12px;max-width:260px">
+                    <option value="">-- Pilih Guru --</option>
+                  </select>
+                  <label style="font-size:12px;font-weight:600">Filter Rombel:</label>
+                  <select id="roster-filter-kelas" onchange="renderRosterView()"
+                    style="padding:6px 10px;border-radius:6px;border:1px solid var(--border)">
+                    <option value="ALL">Semua Kelas (9 Rombel)</option>
+                    <option value="X MPLB">X MPLB</option>
+                    <option value="X TKJ">X TKJ</option>
+                    <option value="X GP">X GP</option>
+                    <option value="XI MPLB">XI MPLB</option>
+                    <option value="XI TKJ">XI TKJ</option>
+                    <option value="XI GP">XI GP</option>
+                    <option value="XII MPLB">XII MPLB</option>
+                    <option value="XII TKJ">XII TKJ</option>
+                    <option value="XII GP">XII GP</option>
+                  </select>
+                  <button class="btn-outline btn-sm" onclick="highlightMySchedule()" id="btn-my-roster">⭐ Jam Mengajar
+                    Saya</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="box">
+            <div class="box-head" style="display:flex;justify-content:space-between;align-items:center">
+              <div id="roster-day-tabs" style="display:flex;gap:6px;flex-wrap:wrap">
+                <button class="btn-sm btn-outline active-day" onclick="setRosterDay('SENIN')">Senin</button>
+                <button class="btn-sm btn-outline" onclick="setRosterDay('SELASA')">Selasa</button>
+                <button class="btn-sm btn-outline" onclick="setRosterDay('RABU')">Rabu</button>
+                <button class="btn-sm btn-outline" onclick="setRosterDay('KAMIS')">Kamis</button>
+                <button class="btn-sm btn-outline" onclick="setRosterDay('JUMAT')">Jumat</button>
+                <button class="btn-sm btn-outline" onclick="setRosterDay('SABTU')">Sabtu</button>
+              </div>
+              <span style="font-size:12px;color:var(--text-muted)" id="roster-info-lbl">Hari: SENIN</span>
+            </div>
+            <div class="box-body" style="padding:16px;overflow:hidden">
+              <div id="roster-table-container" style="width:100%;max-width:100%;min-width:0"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============ MATA PELAJARAN ============ -->
+        <section class="page" id="page-mapel">
+          <div class="section-intro">
+            <h2>Mata Pelajaran Saya</h2>
+            <p>Daftarkan semua mapel dan kelas yang Anda ampu, termasuk lintas jurusan.</p>
+          </div>
+
+          <div class="box mb-3 no-print">
+            <div class="box-head">➕ Tambah / Daftarkan Mata Pelajaran</div>
+            <div class="box-body">
+              <div class="field-row">
+                <div class="field" style="flex:1">
+                  <label>Guru Pengampu</label>
+                  <select id="mp-guru">
+                    <option value="ACTIVE">⭐ Guru Aktif</option>
+                  </select>
+                </div>
+                <div class="field" style="flex:2">
+                  <label>Nama Mata Pelajaran</label>
+                  <input type="text" id="mp-nama" placeholder="Contoh: Matematika, Fisika Terapan ..." />
+                </div>
+              </div>
+              <p class="form-hint">Kelas yang diampu oleh guru ini (bisa pilih lebih dari satu kombinasi):</p>
+              <div id="mp-kelas-list">
+                <!-- kelas rows appended by JS -->
+              </div>
+              <div class="btn-row mt-2">
+                <button class="btn-outline" onclick="addKelasRow()">+ Tambah Kelas Lagi</button>
+              </div>
+              <div class="btn-row mt-3" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+                <button class="btn-primary" onclick="simpanMapel()">💾 Simpan Mata Pelajaran</button>
+                <button class="btn-outline" onclick="syncAllSKMapelPrompt()" style="font-size:12px">🔄 Sinkronkan Semua
+                  Mapel SK 2026/2027</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="box">
+            <div class="box-head"
+              style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+              <span>📚 Daftar Mata Pelajaran Terdaftar</span>
+              <div style="display:flex;align-items:center;gap:8px;font-size:12px">
+                <label style="font-weight:700;color:var(--text-muted)">Filter Guru:</label>
+                <select id="mp-filter-guru" onchange="renderMapelList()"
+                  style="padding:6px 12px;font-size:12px;border-radius:6px;border:1px solid var(--border);background:#fff;font-weight:600">
+                  <option value="ACTIVE">⭐ Guru Aktif</option>
+                </select>
+              </div>
+            </div>
+            <div class="box-body" id="mp-list-body">
+              <p class="empty">Belum ada mata pelajaran.</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============ DATA SISWA & WAJAH ============ -->
+        <section class="page" id="page-siswa">
+          <div class="section-intro">
+            <h2>Data Siswa &amp; Perekaman Wajah</h2>
+            <p>Kelola data siswa, daftarkan foto wajah biometrik, dan cetak kartu QR per siswa.</p>
+          </div>
+          <div class="box mb-3 no-print">
+            <div class="box-head">➕ Input Siswa</div>
+            <div class="box-body">
+              <div class="field-row">
+                <div class="field">
+                  <label>Jurusan</label>
+                  <select id="sw-jurusan" onchange="updateSwKelas()">
+                    <option value="">-- Pilih --</option>
+                    <option value="TJKT">TJKT</option>
+                    <option value="MPLB">MPLB</option>
+                    <option value="GP">GP</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label>Tingkat</label>
+                  <select id="sw-tingkat" onchange="lihatSiswa()">
+                    <option value="">-- Pilih --</option>
+                  </select>
+                </div>
+              </div>
+              <div class="field">
+                <label>Nama Siswa (satu per baris)</label>
+                <textarea id="sw-list" rows="7"
+                  placeholder="Ahmad Fauzi&#10;Budi Santoso&#10;Citra Dewi&#10;..."></textarea>
+              </div>
+              <div class="btn-row" style="flex-wrap:wrap;gap:8px">
+                <button class="btn-primary" onclick="simpanSiswa()">💾 Simpan Siswa</button>
+                <button class="btn-outline" onclick="lihatSiswa()">👁️ Lihat Daftar &amp; Wajah Siswa</button>
+                <button class="btn-outline" onclick="dlTemplate()">📥 Template Excel</button>
+                <button class="btn-danger btn-sm" onclick="hapusSiswaKelasAktif()"
+                  title="Hapus seluruh siswa untuk jurusan &amp; tingkat yang dipilih">🗑️ Hapus Siswa Kelas
+                  Ini</button>
+              </div>
+            </div>
+          </div>
+          <div class="box" id="sw-list-box" style="display:none">
+            <div class="box-head" id="sw-list-head">Daftar Siswa</div>
+            <div class="box-body">
+              <div class="tbl-wrap">
+                <table class="dtbl">
+                  <thead>
+                    <tr>
+                      <th>No</th>
+                      <th>Foto / Wajah</th>
+                      <th>Nama Siswa</th>
+                      <th>Jurusan</th>
+                      <th>Tingkat</th>
+                      <th>Kartu QR</th>
+                      <th>Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody id="sw-tbody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============ PENGATURAN ============ -->
+        <section class="page" id="page-pengaturan">
+          <div class="admin-session-bar">
+            <div style="display:flex;align-items:center;gap:12px">
+              <span style="font-size:24px">🛡️</span>
+              <div>
+                <div style="font-weight:700;font-size:13.5px;color:#065f46">Sesi Administrator Aktif</div>
+                <div style="font-size:11.5px;color:#047857">Akses penuh untuk mengubah profil guru, sinkronisasi SK, keamanan, dan backup database.</div>
+              </div>
+            </div>
+            <button class="btn-outline" onclick="lockAdminSession()" style="font-size:12px;padding:6px 14px;border-color:#059669;color:#065f46;display:flex;align-items:center;gap:6px">
+              <span>🔒</span> Kunci Pengaturan (Keluar Admin)
+            </button>
+          </div>
+
+          <div class="section-intro">
+            <h2>Pengaturan Sistem &amp; Profil Guru</h2>
+            <p>Kelola data profil guru, keamanan admin, sinkronisasi SK, dan backup database.</p>
+          </div>
+
+          <!-- SK & Timetable Management Card -->
+          <div class="box mb-3" id="box-sk-management">
+            <div class="box-head" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+              <div style="display:flex;align-items:center;gap:8px">
+                <span style="font-size:18px">📑</span>
+                <span style="font-weight:700">Manajemen SK Pembagian Tugas &amp; Jadwal (Roster)</span>
+              </div>
+              <span id="settings-sk-badge" style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:12px;background:#dcfce7;color:#166534">
+                SK SMKN 10 Aktif
+              </span>
+            </div>
+            <div class="box-body">
+              <div id="settings-sk-summary" style="background:#f8fafc;border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:14px;display:grid;grid-template-columns:repeat(auto-fit, minmax(160px, 1fr));gap:10px">
+                <div>
+                  <div style="font-size:11px;color:var(--text-muted);font-weight:600">Nomor SK:</div>
+                  <div id="sk-stat-nomor" style="font-size:12.5px;font-weight:700;color:var(--text)">034/ /SMKN 10 KLK/VII/2026</div>
+                </div>
+                <div>
+                  <div style="font-size:11px;color:var(--text-muted);font-weight:600">Tahun Ajaran / Sem:</div>
+                  <div id="sk-stat-ta" style="font-size:12.5px;font-weight:700;color:var(--text)">2026/2027 (Ganjil)</div>
+                </div>
+                <div>
+                  <div style="font-size:11px;color:var(--text-muted);font-weight:600">Kepala Sekolah:</div>
+                  <div id="sk-stat-kepsek" style="font-size:12.5px;font-weight:700;color:var(--text)">TABING, S.Pd,. M.Pd</div>
+                </div>
+                <div>
+                  <div style="font-size:11px;color:var(--text-muted);font-weight:600">Statistik Data SK:</div>
+                  <div id="sk-stat-counts" style="font-size:12px;font-weight:700;color:#059669">24 Guru &bull; 9 Rombel &bull; 75 Slot</div>
+                </div>
+              </div>
+
+              <div class="btn-row" style="display:flex;gap:10px;flex-wrap:wrap">
+                <button class="btn-primary" onclick="openSKUploadModal()" style="display:inline-flex;align-items:center;gap:6px">
+                  <span>📤</span> Upload SK &amp; Buat Jadwal Otomatis
+                </button>
+                <button class="btn-outline" onclick="downloadSKTemplateExcel()" style="display:inline-flex;align-items:center;gap:6px">
+                  <span>📥</span> Unduh Format Template Excel (.xlsx)
+                </button>
+                <button class="btn-outline" id="settings-reset-sk-btn" onclick="resetSKDataToDefault()" style="display:none;color:#dc2626;border-color:#fca5a5;align-items:center;gap:6px">
+                  <span>🔄</span> Kembalikan ke SK Default SMKN 10
+                </button>
+              </div>
+            </div>
+          </div>
+          <div class="box mb-3">
+            <div class="box-head">👤 Profil Guru</div>
+            <div class="box-body">
+              <div class="field"
+                style="background:#f4f9f5;padding:12px;border-radius:8px;border:1px solid var(--border);margin-bottom:14px">
+                <label style="font-weight:700">⚡ Sinkronkan Profil dari SK 2026/2027:</label>
+                <select id="pg-sk-guru" onchange="onSelectSKGuruSettings(this.value)"
+                  style="margin-top:6px;width:100%;padding:8px">
+                  <option value="">-- Pilih Guru dari SK --</option>
+                </select>
+              </div>
+              <div class="field-row">
+                <div class="field"><label>Nama Lengkap</label><input type="text" id="pg-nama" /></div>
+                <div class="field"><label>NIP / NUPTK</label><input type="text" id="pg-nip" /></div>
+              </div>
+              <div class="field-row">
+                <div class="field" style="flex:1.2">
+                  <label>Tahun Ajaran</label>
+                  <input type="text" id="pg-ta" placeholder="Contoh: 2026/2027" />
+                </div>
+                <div class="field" style="flex:1">
+                  <label>Semester</label>
+                  <select id="pg-semester" style="font-weight:700">
+                    <option value="Ganjil">Semester Ganjil (1)</option>
+                    <option value="Genap">Semester Genap (2)</option>
+                  </select>
+                </div>
+              </div>
+              <button class="btn-primary" onclick="simpanPengaturan()">💾 Simpan Profil Guru</button>
+            </div>
+          </div>
+
+          <!-- 🔑 GANTI PIN GURU PRIBADI -->
+          <div class="box mb-3" id="box-guru-pin-mgmt" style="border:1.5px solid rgba(16,185,129,0.3)">
+            <div class="box-head" style="background:linear-gradient(135deg, #062419 0%, #0d3d2a 100%);color:#fff">
+              🔑 Ganti PIN Akun Guru Saya
+            </div>
+            <div class="box-body">
+              <p class="form-hint" style="margin-bottom:10px">
+                Atur PIN rahasia pribadi Anda untuk mencegah orang lain login menggunakan nama Anda.
+              </p>
+              <div class="field-row">
+                <div class="field">
+                  <label>PIN Saat Ini</label>
+                  <div style="position:relative;display:flex;align-items:center">
+                    <input type="password" id="guru-current-pin" placeholder="PIN saat ini..." style="width:100%;padding-right:36px" />
+                    <button type="button" onclick="toggleAdminPassVisibility('guru-current-pin', this)" style="position:absolute;right:8px;background:none;border:none;cursor:pointer;opacity:0.65;font-size:15px">👁️</button>
+                  </div>
+                </div>
+                <div class="field">
+                  <label>PIN Baru (Min. 4 Karakter)</label>
+                  <div style="position:relative;display:flex;align-items:center">
+                    <input type="password" id="guru-new-pin" placeholder="PIN baru pilihan Anda..." style="width:100%;padding-right:36px" />
+                    <button type="button" onclick="toggleAdminPassVisibility('guru-new-pin', this)" style="position:absolute;right:8px;background:none;border:none;cursor:pointer;opacity:0.65;font-size:15px">👁️</button>
+                  </div>
+                </div>
+                <div class="field">
+                  <label>Ulangi PIN Baru</label>
+                  <div style="position:relative;display:flex;align-items:center">
+                    <input type="password" id="guru-confirm-pin" placeholder="Ulangi PIN baru..." style="width:100%;padding-right:36px" />
+                    <button type="button" onclick="toggleAdminPassVisibility('guru-confirm-pin', this)" style="position:absolute;right:8px;background:none;border:none;cursor:pointer;opacity:0.65;font-size:15px">👁️</button>
+                  </div>
+                </div>
+              </div>
+              <div style="margin-top:12px;display:flex;align-items:center;gap:14px">
+                <button class="btn-primary" onclick="simpanPinGuru()">🔐 Perbarui PIN Guru</button>
+                <span id="guru-pin-status-msg" style="font-size:12px;font-weight:600"></span>
+              </div>
+            </div>
+          </div>
+
+          <div class="box mb-3">
+            <div class="box-head">🔐 Keamanan &amp; Sandi Administrator</div>
+            <div class="box-body">
+              <p class="form-hint" style="margin-bottom:14px">
+                Ganti Sandi Administrator untuk mengamankan menu Pengaturan saat aplikasi diakses oleh banyak guru secara online.
+              </p>
+              <div class="field-row">
+                <div class="field">
+                  <label>Sandi Saat Ini</label>
+                  <div style="position:relative;display:flex;align-items:center">
+                    <input type="password" id="admin-current-pin" placeholder="Sandi saat ini..." style="width:100%;padding-right:36px" />
+                    <button type="button" onclick="toggleAdminPassVisibility('admin-current-pin', this)" style="position:absolute;right:8px;background:none;border:none;cursor:pointer;opacity:0.65;font-size:15px">👁️</button>
+                  </div>
+                </div>
+                <div class="field">
+                  <label>Sandi Baru (Min. 4 Karakter)</label>
+                  <div style="position:relative;display:flex;align-items:center">
+                    <input type="password" id="admin-new-pin" placeholder="Sandi baru..." style="width:100%;padding-right:36px" />
+                    <button type="button" onclick="toggleAdminPassVisibility('admin-new-pin', this)" style="position:absolute;right:8px;background:none;border:none;cursor:pointer;opacity:0.65;font-size:15px">👁️</button>
+                  </div>
+                </div>
+                <div class="field">
+                  <label>Ulangi Sandi Baru</label>
+                  <div style="position:relative;display:flex;align-items:center">
+                    <input type="password" id="admin-confirm-pin" placeholder="Konfirmasi sandi..." style="width:100%;padding-right:36px" />
+                    <button type="button" onclick="toggleAdminPassVisibility('admin-confirm-pin', this)" style="position:absolute;right:8px;background:none;border:none;cursor:pointer;opacity:0.65;font-size:15px">👁️</button>
+                  </div>
+                </div>
+              </div>
+              <div style="margin-top:12px;display:flex;align-items:center;gap:14px">
+                <button class="btn-primary" onclick="simpanSandiAdmin()">🔑 Perbarui Sandi Admin</button>
+                <span id="admin-pin-status-msg" style="font-size:12px;font-weight:600"></span>
+              </div>
+            </div>
+          </div>
+          <div class="box">
+            <div class="box-head">💾 Backup &amp; Restore</div>
+            <div class="box-body">
+              <div class="btn-row">
+                <button class="btn-outline" onclick="backupData()">📤 Export Backup (JSON)</button>
+                <label class="btn-outline" style="cursor:pointer">
+                  📥 Import Backup
+                  <input type="file" accept=".json" onchange="restoreData(event)" style="display:none" />
+                </label>
+              </div>
+              <p class="form-hint mt-2">File backup JSON menyimpan data profil, mapel, siswa, riwayat absensi,
+                pendaftaran wajah, dan presensi guru.</p>
+            </div>
+          </div>
+          <div class="box" style="border:1px solid #fecaca;margin-top:16px">
+            <div class="box-head" style="color:#b91c1c;background:#fff5f5">⚠️ Area Berbahaya / Reset Sistem</div>
+            <div class="box-body">
+              <p class="form-hint" style="color:var(--text-mid);margin-bottom:12px">
+                Bersihkan data lokal aplikasi jika ingin memulai tahun ajaran baru atau mereset seluruh database di
+                perangkat ini.
+              </p>
+              <div class="btn-row">
+                <button class="btn-danger" onclick="resetDatabaseSemua()">🗑️ Reset Seluruh Database Aplikasi</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+      </div><!-- end content-area -->
+    </div><!-- end right-panel -->
+  </div><!-- end app-shell -->
+
+  <!-- MODAL: DAFTAR WAJAH SISWA -->
+  <div class="modal-overlay" id="modal-face-enroll" style="display:none">
+    <div class="modal-box">
+      <div class="modal-head">
+        <h3>👤 Pendaftaran Wajah Biometrik Siswa</h3>
+        <button class="modal-close" onclick="closeFaceEnrollModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="enroll-meta">
+          <div><strong>Nama Siswa:</strong> <span id="enf-nama">-</span></div>
+          <div><strong>Kelas / Rombel:</strong> <span id="enf-kelas">-</span></div>
+        </div>
+
+        <div class="enroll-camera-area">
+          <div class="enroll-video-box" id="enf-video-box">
+            <video id="enf-video" autoplay playsinline muted></video>
+            <div class="enf-oval-guide"></div>
+          </div>
+          <canvas id="enf-canvas" style="display:none"></canvas>
+          <div class="enf-preview-box" id="enf-preview-wrap" style="display:none">
+            <img id="enf-img-preview" alt="Preview Wajah" />
+            <div class="enf-preview-badge">Wajah Berhasil Diambil ✅</div>
+          </div>
+        </div>
+
+        <p class="form-hint" style="text-align:center;margin-top:8px">
+          Arahkan wajah siswa tepat di tengah lingkaran oval dengan pencahayaan yang terang.
+        </p>
+
+        <div class="btn-row mt-3" style="justify-content:center;gap:8px;flex-wrap:wrap">
+          <button class="btn-primary" id="btn-enf-capture" onclick="captureFaceEnroll()">📸 Ambil Foto Wajah</button>
+          <button class="btn-outline" id="btn-enf-retake" onclick="retakeFaceEnroll()" style="display:none">🔄 Ulangi
+            Foto</button>
+          <label class="btn-outline" style="cursor:pointer">
+            📁 Unggah Foto
+            <input type="file" accept="image/*" onchange="uploadFaceFile(event)" style="display:none" />
+          </label>
+          <button class="btn-danger" id="btn-enf-delete" onclick="hapusWajahSiswa()" style="display:none">🗑️ Hapus
+            Wajah</button>
+          <button class="btn-primary" id="btn-enf-save" onclick="saveFaceEnroll()"
+            style="display:none;background:#15803d">
+            💾 Simpan Wajah Biometrik
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: KARTU SISWA SINGLE ZOOM & CETAK -->
+  <div class="modal-overlay" id="modal-student-card" style="display:none">
+    <div class="modal-box" style="max-width:440px">
+      <div class="modal-head">
+        <h3>🪪 Kartu Pelajar Digital</h3>
+        <button class="modal-close" onclick="closeStudentCardModal()">&times;</button>
+      </div>
+      <div class="modal-body" style="padding:15px">
+        <div id="single-card-render-target" style="display:flex;justify-content:center"></div>
+        <div class="btn-row mt-3" style="justify-content:center">
+          <button class="btn-primary" onclick="printSingleStudentCardTarget()">🖨️ Cetak Kartu Ini</button>
+          <button class="btn-outline" onclick="closeStudentCardModal()">Tutup</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: LIHAT FOTO BUKTI HADIR -->
+  <div class="modal-overlay" id="modal-photo-proof" style="display:none">
+    <div class="modal-box" style="max-width:420px;text-align:center">
+      <div class="modal-head">
+        <h3>📸 Bukti Kehadiran Wajah Siswa</h3>
+        <button class="modal-close" onclick="closePhotoProofModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <img id="photo-proof-img" src="" alt="Bukti Foto Absensi"
+          style="width:100%;max-height:360px;object-fit:cover;border-radius:8px;border:1px solid var(--border)" />
+        <div id="photo-proof-desc" style="margin-top:12px;font-size:13px;color:var(--text);font-weight:600"></div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- MODAL: RAPOR AKADEMIK SISWA -->
+  <div class="modal-overlay" id="modal-rapor-siswa" style="display:none">
+    <div class="modal-box rapor-sheet-container" style="max-height:92vh;display:flex;flex-direction:column">
+      <div class="modal-head no-print">
+        <h3>📄 Lembar Rapor Hasil Belajar Siswa</h3>
+        <button class="modal-close" onclick="closeRaporModal()">&times;</button>
+      </div>
+      <div class="modal-body" style="overflow-y:auto;padding:24px">
+        <div id="rapor-print-area">
+          <!-- Rendered Rapor Paper with Kop, Student Meta, Grade Table, Signatures -->
+        </div>
+        <div class="btn-row mt-3 no-print" style="justify-content:center;gap:12px">
+          <button class="btn-primary" onclick="printRaporContent()">🖨️ Cetak Lembar Rapor (A4)</button>
+          <button class="btn-outline" onclick="closeRaporModal()">Tutup</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ MODAL GANTI AKUN GURU (24 GURU + PIN PRIBADI) ============ -->
+  <div class="modal-overlay" id="modal-teacher-switch" style="display:none;z-index:99997">
+    <div class="modal-box" style="max-width:440px;text-align:left;border:1.5px solid rgba(16,185,129,0.35);box-shadow:0 20px 50px rgba(0,0,0,0.35)">
+      <div class="modal-head" style="background:linear-gradient(135deg, #062419 0%, #0d3d2a 100%);color:#fff;border-bottom:2px solid #10b981;padding:12px 18px">
+        <h3 style="display:flex;align-items:center;gap:8px;color:#f0fdf4;font-size:15px">
+          <span>👤</span> Masuk / Ganti Akun Guru
+        </h3>
+        <button class="modal-close" onclick="closeTeacherSwitchModal()" style="color:#fff">&times;</button>
+      </div>
+      <div class="modal-body" style="padding:14px 16px 16px">
+        <div class="field" style="margin-bottom:8px">
+          <label style="font-weight:700;font-size:12px;display:block;margin-bottom:4px">Pilih Akun Guru (24 Guru SMKN 10):</label>
+          <select id="switch-teacher-select" onchange="onSwitchTeacherSelectChange(this.value)" style="width:100%;padding:8px 10px;font-size:13px;font-weight:600;border-radius:8px">
+            <option value="">-- Pilih Nama Guru --</option>
+          </select>
+        </div>
+
+        <!-- Preview Kartu Guru Terpilih (Compact) -->
+        <div class="teacher-preview-box" id="teacher-preview-box" style="display:none;margin-bottom:6px;padding:8px 10px;border-radius:10px;gap:10px">
+          <div class="teacher-preview-avatar" id="switch-preview-avatar" style="width:34px;height:34px;font-size:14px;border-radius:8px">?</div>
+          <div style="flex:1;min-width:0">
+            <div id="switch-preview-name" style="font-weight:700;font-size:12.5px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Nama Guru</div>
+            <div style="display:flex;gap:8px;font-size:11px;margin-top:1px;align-items:center">
+              <span id="switch-preview-nip" style="color:#059669;font-weight:600">🛡️ NIP Disamarkan</span>
+              <span id="switch-preview-mapel" style="color:var(--text-mid);font-weight:600">Mapel: -</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. ORBITAL OTP CARD (TEACHER AUTH - COMPACT) -->
+        <div class="orbital-auth-card" id="teacher-orbital-card">
+          <div class="orbital-card-handle"></div>
+          <div class="orbital-title" id="teacher-orbital-title">Verifikasi PIN Guru</div>
+          <div class="orbital-subtitle" id="teacher-orbital-sub">Ketik PIN rahasia Anda untuk melanjutkan verifikasi</div>
+
+          <!-- Production Secure Status Badge & Anti-Brute-Force Banner -->
+          <div class="security-status-badge" id="teacher-security-badge">
+            <div class="sec-badge-icon">🛡️</div>
+            <div class="sec-badge-content">
+              <div class="sec-badge-title">AUTENTIKASI TERENKRIPSI · SMKN 10</div>
+              <div class="sec-badge-desc" id="teacher-sec-desc">Ketik 6-digit PIN rahasia untuk otorisasi identitas guru</div>
+            </div>
+          </div>
+          <div class="security-lockout-banner" id="teacher-lockout-banner">
+            <span>⛔</span>
+            <span id="teacher-lockout-msg">Percobaan salah berulang. Terkunci sementara.</span>
+          </div>
+
+          <!-- Hidden Input for keyboard typing & accessibility -->
+          <input type="text" id="switch-teacher-pin" class="orbital-hidden-input" autocomplete="off" maxlength="12" />
+
+          <!-- Interactive Slot Boxes Row -->
+          <div class="orbital-slots-wrap" id="teacher-slots-row" onclick="focusTeacherPinInput()" title="Klik untuk mengetik PIN">
+            <!-- Dynamic Slots rendered here -->
+          </div>
+
+          <!-- Compact Video Orbital Animation Stage -->
+          <div class="orbit-stage" id="teacher-orbit-stage">
+            <svg class="orbit__ring" viewBox="0 0 130 130" aria-hidden="true">
+              <circle class="orbit__path" cx="65" cy="65" r="45" />
+            </svg>
+            <div class="orbit__hub" id="teacher-orbit-hub">
+              <span class="orbit-check-icon" id="teacher-orbit-check">✓</span>
+            </div>
+            <div class="orbit-particles" id="teacher-orbit-particles"></div>
+            <div class="orbit-items-wrap" id="teacher-orbit-items"></div>
+          </div>
+
+          <div id="switch-teacher-error" style="color:var(--orbit-bad);font-size:11.5px;margin-top:6px;display:none;font-weight:600">
+            ⚠️ PIN salah! Format: 3 huruf nama depan + 12@
+          </div>
+        </div>
+
+        <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px">
+          <button class="btn-outline" onclick="closeTeacherSwitchModal()" style="padding:7px 14px;font-size:12.5px">Batal</button>
+          <button class="btn-primary" id="btn-teacher-switch-submit" onclick="submitTeacherSwitch()" style="padding:7px 18px;font-size:12.5px">
+            Masuk sebagai Guru Ini 🚀
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ MODAL AUTH ADMIN (PENGATURAN) ============ -->
+  <div class="modal-overlay" id="modal-admin-auth" style="display:none;z-index:99998">
+    <div class="modal-box" style="max-width:430px;text-align:left;border:1.5px solid rgba(16,185,129,0.4);box-shadow:0 20px 50px rgba(0,0,0,0.35)">
+      <div class="modal-head" style="background:linear-gradient(135deg, #062419 0%, #0d3d2a 100%);color:#fff;border-bottom:2px solid #10b981;padding:12px 18px">
+        <h3 style="display:flex;align-items:center;gap:8px;color:#f0fdf4;font-size:15px">
+          <span>🔐</span> Autentikasi Administrator
+        </h3>
+        <button class="modal-close" onclick="closeAdminAuthModal()" style="color:#fff">&times;</button>
+      </div>
+      <div class="modal-body" style="padding:14px 16px 16px">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;padding:8px 12px;background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.2);border-radius:10px">
+          <span style="font-size:22px;flex-shrink:0">🛡️</span>
+          <div style="font-size:11.5px;color:var(--text-mid);line-height:1.35">
+            <strong style="color:var(--text);font-size:12.5px;display:block">Pengaturan Sistem Terkunci</strong>
+            Masukkan sandi administrator untuk membuka hak akses pengaturan.
+          </div>
+        </div>
+
+        <!-- 2. ORBITAL OTP CARD (ADMIN AUTH - COMPACT) -->
+        <div class="orbital-auth-card" id="admin-orbital-card">
+          <div class="orbital-card-handle"></div>
+          <div class="orbital-title" id="admin-orbital-title">Kunci Pengaturan Admin</div>
+          <div class="orbital-subtitle" id="admin-orbital-sub">Ketik sandi administrator untuk membuka hak akses</div>
+
+          <!-- Production Secure Status Badge & Anti-Brute-Force Banner -->
+          <div class="security-status-badge" id="admin-security-badge">
+            <div class="sec-badge-icon">🔐</div>
+            <div class="sec-badge-content">
+              <div class="sec-badge-title">OTORISASI ADMINISTRATOR RESMI</div>
+              <div class="sec-badge-desc" id="admin-sec-desc">Akses terbatas: Sandi master administrator terlindungi enkripsi</div>
+            </div>
+          </div>
+          <div class="security-lockout-banner" id="admin-lockout-banner">
+            <span>⛔</span>
+            <span id="admin-lockout-msg">Percobaan salah berulang. Terkunci sementara.</span>
+          </div>
+
+          <!-- Hidden Input for keyboard typing & accessibility -->
+          <input type="password" id="admin-auth-input" class="orbital-hidden-input" autocomplete="off" maxlength="16" />
+
+          <!-- Interactive Slot Boxes Row -->
+          <div class="orbital-slots-wrap" id="admin-slots-row" onclick="focusAdminPinInput()" title="Klik untuk mengetik sandi">
+            <!-- Dynamic Slots rendered here -->
+          </div>
+
+          <!-- Compact Video Orbital Animation Stage -->
+          <div class="orbit-stage" id="admin-orbit-stage">
+            <svg class="orbit__ring" viewBox="0 0 130 130" aria-hidden="true">
+              <circle class="orbit__path" cx="65" cy="65" r="45" />
+            </svg>
+            <div class="orbit__hub" id="admin-orbit-hub">
+              <span class="orbit-check-icon" id="admin-orbit-check">✓</span>
+            </div>
+            <div class="orbit-particles" id="admin-orbit-particles"></div>
+            <div class="orbit-items-wrap" id="admin-orbit-items"></div>
+          </div>
+
+          <div id="admin-auth-error" style="color:var(--orbit-bad);font-size:11.5px;margin-top:6px;display:none;font-weight:600">
+            ⚠️ Sandi Admin salah! Akses ditolak.
+          </div>
+        </div>
+
+        <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px">
+          <button class="btn-outline" onclick="closeAdminAuthModal()" style="padding:7px 14px;font-size:12.5px">Batal</button>
+          <button class="btn-primary" id="btn-admin-auth-submit" onclick="submitAdminAuth()" style="padding:7px 18px;font-size:12.5px">
+            Buka Akses 🔓
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: UPLOAD SK & JADWAL OTOMATIS -->
+  <div class="modal-overlay" id="modal-sk-upload" style="display:none;z-index:99998">
+    <div class="modal-box" style="max-width:640px;width:95%;max-height:92vh;display:flex;flex-direction:column;border:1.5px solid rgba(16,185,129,0.4);box-shadow:0 24px 50px rgba(0,0,0,0.35)">
+      <div class="modal-head" style="background:linear-gradient(135deg, #062419 0%, #0d3d2a 100%);color:#fff;border-bottom:2px solid #10b981;padding:14px 18px">
+        <div>
+          <div style="font-size:16px;font-weight:800;display:flex;align-items:center;gap:8px">
+            <span>📤</span> Upload SK &amp; Buat Jadwal Otomatis
+          </div>
+          <div style="font-size:11.5px;color:#a7f3d0;margin-top:2px">
+            Impor dokumen SK (.xlsx / .xls / .json) untuk memperbarui guru, mapel, jadwal baru, &amp; siswa
+          </div>
+        </div>
+        <button class="modal-close" onclick="closeSKUploadModal()" style="color:#fff">&times;</button>
+      </div>
+      <div class="modal-body" style="padding:16px 18px;overflow-y:auto">
+        <!-- Hidden file input -->
+        <input type="file" id="sk-file-input" accept=".xlsx, .xls, .json" style="display:none" onchange="onSKFileSelected(this.files)" />
+
+        <!-- Drag & Drop Zone -->
+        <div class="sk-drop-zone" id="sk-drop-zone" onclick="document.getElementById('sk-file-input').click()">
+          <span class="sk-drop-icon">📑</span>
+          <div class="sk-drop-title">Klik untuk Memilih File SK atau Tarik ke Sini</div>
+          <div class="sk-drop-sub">Mendukung Microsoft Excel (.xlsx, .xls) &amp; Format JSON (.json)</div>
+        </div>
+
+        <!-- File Preview Card -->
+        <div class="sk-preview-card" id="sk-preview-box" style="display:none">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;border-bottom:1px solid var(--border);padding-bottom:10px;margin-bottom:10px">
+            <div>
+              <div style="font-size:13.5px;font-weight:700;color:var(--text)" id="sk-prev-filename">Dokumen_SK.xlsx</div>
+              <div style="font-size:11px;color:var(--text-muted)" id="sk-prev-filesize">0 KB</div>
+            </div>
+            <span style="font-size:11px;font-weight:700;background:#dcfce7;color:#166534;padding:3px 10px;border-radius:12px">
+              ✅ File Berhasil Dianalisis
+            </span>
+          </div>
+
+          <div class="sk-stat-grid">
+            <div class="sk-stat-item">
+              <div class="sk-stat-val" id="sk-prev-guru-count">0</div>
+              <div class="sk-stat-lbl">👨‍🏫 Guru</div>
+            </div>
+            <div class="sk-stat-item">
+              <div class="sk-stat-val" id="sk-prev-mapel-count">0</div>
+              <div class="sk-stat-lbl">📚 Mapel</div>
+            </div>
+            <div class="sk-stat-item">
+              <div class="sk-stat-val" id="sk-prev-roster-count">0</div>
+              <div class="sk-stat-lbl">📅 Slot Jadwal</div>
+            </div>
+            <div class="sk-stat-item">
+              <div class="sk-stat-val" id="sk-prev-siswa-count">0</div>
+              <div class="sk-stat-lbl">👥 Siswa</div>
+            </div>
+          </div>
+
+          <div style="font-size:12px;background:#f1f5f9;border-radius:8px;padding:8px 12px;margin-top:8px" id="sk-prev-info-box">
+            <strong>🏫 Metadata SK:</strong> <span id="sk-prev-sk-info">-</span>
+          </div>
+          <div id="sk-prev-auto-roster-notice" style="display:none;margin-top:8px;font-size:11.5px;color:#0284c7;background:#f0f9ff;border:1px solid #bae6fd;padding:6px 10px;border-radius:6px">
+            ⚡ <strong>Info:</strong> Jadwal mingguan akan <strong>dibuat otomatis</strong> secara pintar berdasarkan alokasi jam mengajar guru!
+          </div>
+        </div>
+
+        <!-- Options Checkboxes -->
+        <div class="sk-options-list">
+          <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:6px">Pilih Komponen yang Diimpor &amp; Diperbarui:</div>
+          <label class="sk-option-row">
+            <input type="checkbox" id="sk-opt-roster" checked />
+            <div>
+              <div class="sk-option-label">📅 Buat &amp; Perbarui Jadwal / Roster Pelajaran</div>
+              <div class="sk-option-desc">Jadwal baru Senin s/d Sabtu untuk seluruh rombel kelas langsung aktif</div>
+            </div>
+          </label>
+          <label class="sk-option-row">
+            <input type="checkbox" id="sk-opt-teachers" checked />
+            <div>
+              <div class="sk-option-label">👨‍🏫 Perbarui Data Guru &amp; Akun PIN Login</div>
+              <div class="sk-option-desc">Menyinkronkan NIP, pangkat, jabatan, kode guru, dan PIN login masing-masing guru</div>
+            </div>
+          </label>
+          <label class="sk-option-row">
+            <input type="checkbox" id="sk-opt-mapel" checked />
+            <div>
+              <div class="sk-option-label">📚 Buat &amp; Sinkronkan Mata Pelajaran (db.mapel)</div>
+              <div class="sk-option-desc">Otomatis mendaftarkan mapel sesuai guru pengajar dan kelas tujuan</div>
+            </div>
+          </label>
+          <label class="sk-option-row">
+            <input type="checkbox" id="sk-opt-siswa" checked />
+            <div>
+              <div class="sk-option-label">👥 Impor Data Siswa per Rombel Kelas</div>
+              <div class="sk-option-desc">Memasukkan daftar siswa ke rombel masing-masing jika dimuat dalam SK</div>
+            </div>
+          </label>
+          <label class="sk-option-row">
+            <input type="checkbox" id="sk-opt-school" checked />
+            <div>
+              <div class="sk-option-label">🏫 Perbarui Info Sekolah, Nomor SK &amp; Kepala Sekolah</div>
+              <div class="sk-option-desc">Memperbarui semester, tahun ajaran, dan identitas penandatangan SK</div>
+            </div>
+          </label>
+        </div>
+
+        <div style="margin-top:14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+          <button type="button" class="btn-outline btn-sm" onclick="downloadSKTemplateExcel()" style="display:inline-flex;align-items:center;gap:6px">
+            <span>📥</span> Unduh Format Template SK (.xlsx)
+          </button>
+          <div style="display:flex;gap:8px">
+            <button type="button" class="btn-outline btn-sm" onclick="closeSKUploadModal()">Batal</button>
+            <button type="button" class="btn-primary btn-sm" id="btn-process-sk" onclick="processSelectedSKFile()" disabled style="display:inline-flex;align-items:center;gap:6px">
+              <span>🚀</span> Terapkan Data SK &amp; Buat Jadwal
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: KONFIRMASI HAPUS / AKSI -->
+  <div class="modal-overlay" id="modal-app-confirm" style="display:none;z-index:99999">
+    <div class="modal-box" style="max-width:420px;text-align:center;padding:26px 22px">
+      <div style="font-size:46px;margin-bottom:12px">⚠️</div>
+      <h3 style="font-size:18px;font-weight:700;color:var(--text);margin-bottom:8px">Konfirmasi Tindakan</h3>
+      <p id="app-confirm-msg" style="font-size:13.5px;color:var(--text-mid);line-height:1.5;margin-bottom:20px">
+        Apakah Anda yakin ingin melanjutkan tindakan ini?
+      </p>
+      <div style="display:flex;gap:12px;justify-content:center">
+        <button class="btn-outline" style="min-width:105px" onclick="closeAppConfirm()">Batal</button>
+        <button class="btn-danger" id="btn-app-confirm-yes" style="min-width:105px">Ya, Hapus</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast-wrap" id="toast"></div>
+
+  <!-- ==============================================
+       CENTER FAB (FLOATING ACTION DOCK & QUICK MENU)
+       ============================================== -->
+  <div class="center-fab-dock" id="center-fab-dock" role="toolbar" aria-label="Aksi Cepat & Navigasi">
+    <!-- Popover Quick Menu -->
+    <div class="center-fab-menu" id="center-fab-menu" style="display:none">
+      <div class="fab-menu-header">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span class="live-dot" style="background:#10b981"></span>
+          <strong>Menu Cepat SMKN 10</strong>
+        </div>
+        <button class="fab-menu-close" onclick="toggleFabMenu()" title="Tutup Menu">✕</button>
+      </div>
+      <div class="fab-menu-grid">
+        <button class="fab-menu-item" onclick="showPage('absensi'); toggleFabMenu();">
+          <span class="fab-menu-icon">✏️</span>
+          <span class="fab-menu-lbl">Input Absensi</span>
+        </button>
+        <button class="fab-menu-item" onclick="showPage('absen-guru'); toggleFabMenu();">
+          <span class="fab-menu-icon">🕒</span>
+          <span class="fab-menu-lbl">Presensi Guru</span>
+        </button>
+        <button class="fab-menu-item" onclick="showPage('rekap'); toggleFabMenu();">
+          <span class="fab-menu-icon">📋</span>
+          <span class="fab-menu-lbl">Rekap Absensi</span>
+        </button>
+        <button class="fab-menu-item" onclick="showPage('kartu'); toggleFabMenu();">
+          <span class="fab-menu-icon">🪪</span>
+          <span class="fab-menu-lbl">Cetak Kartu</span>
+        </button>
+        <button class="fab-menu-item" onclick="openTeacherSwitchModal(); toggleFabMenu();">
+          <span class="fab-menu-icon">👤</span>
+          <span class="fab-menu-lbl">Ganti Guru</span>
+        </button>
+        <button class="fab-menu-item fab-menu-logout" id="fab-item-logout" onclick="logoutGuru(event); toggleFabMenu();" title="Keluar / Logout Akun Guru" style="display:none">
+          <span class="fab-menu-icon" style="color:#ef4444">🚪</span>
+          <span class="fab-menu-lbl" style="color:#ef4444;font-weight:700">Logout</span>
+        </button>
+        <button class="fab-menu-item" onclick="showPage('dashboard'); toggleFabMenu();">
+          <span class="fab-menu-icon">🏠</span>
+          <span class="fab-menu-lbl">Dashboard</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Center Floating Action Dock Tray -->
+    <div class="fab-pill-tray">
+      <!-- 1. Sidebar Minimize Toggle -->
+      <button class="fab-tray-btn" id="fab-sidebar-toggle" onclick="toggleSidebarMinimize()" title="Perkecil / Perbesar Sidebar (Minimize)">
+        <span class="fab-icon" id="fab-sidebar-icon">📑</span>
+        <span class="fab-text" id="fab-sidebar-text">Sidebar</span>
+      </button>
+
+      <!-- 2. Core Center FAB (Glowing Liquid Capsule Button) -->
+      <button class="fab-core-btn" id="fab-core-trigger" onclick="toggleFabMenu()" title="Pusat Aksi Cepat (Center FAB)">
+        <span class="fab-core-icon">✨</span>
+        <span class="fab-core-text">Aksi Cepat</span>
+      </button>
+
+      <!-- 3. Dark / Light Theme Toggle -->
+      <button class="fab-tray-btn" id="fab-theme-toggle" onclick="toggleTheme()" title="Ubah Tema Gelap / Terang">
+        <span class="fab-icon" id="fab-theme-icon">🌙</span>
+        <span class="fab-text" id="fab-theme-text">Gelap</span>
+      </button>
+
+      <!-- 4. Scroll To Top Helper -->
+      <button class="fab-tray-btn fab-top-btn" onclick="scrollToPageTop()" title="Kembali ke Atas">
+        <span class="fab-icon">⬆️</span>
+      </button>
+    </div>
+  </div>
+
+  <script src="sk_data.js?v=20261015_11"></script>
+  <script src="app.js?v=20261016_11"></script>
+</body>
+
+</html>

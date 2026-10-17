@@ -1,0 +1,12 @@
+# System & IDE files
+.claude/
+.agents/
+agent/
+CLAUDE.md
+skills-lock.json
+style.css.bak
+*.bak
+*.tmp
+.DS_Store
+Thumbs.db
+desktop.ini
