@@ -2,12 +2,18 @@
  * bell.js – Sistem Bel Sekolah & Pengumuman Suara Otomatis
  * SMK NEGERI 10 KOLAKA
  * 
+ * Didukung oleh Microsoft Edge Neural Text-to-Speech (edge-tts):
+ * - Suara Alami Berstandar Studio: id-ID-GadisNeural & id-ID-ArdiNeural
+ * - Audio Pre-rendered untuk Seluruh 24 Guru dan Agenda Sekolah
+ * - Dynamic On-Demand Synthesis melalui endpoint tts.php
+ * - Fallback Otomatis ke Web Speech API jika offline/tanpa server
+ * 
  * Fitur:
  * 1. Bel Tanda Masuk Kelas (Umum & Khusus Guru yang Sedang Login)
  * 2. Bel Selesai Jam Mengajar (Ucapan terima kasih & pergantian kelas)
  * 3. Suara Khusus Jam Pertama, Kedua/Lanjutan, Istirahat, Sholat Dhuhur/Jumat, Jam Pulang
  * 4. Pukul 10.00 WITA: Lagu Kebangsaan Indonesia Raya Otomatis & Himbauan Sikap Sempurna
- * 5. Sintesis Bel Westminster (Web Audio API) & Pengumuman Bahasa Indonesia (Web Speech API)
+ * 5. Sintesis Bel Westminster (Web Audio API)
  * 6. Pemutar Audio Lagu Kebangsaan dengan Visualizer & Banner Khidmat
  */
 
@@ -45,6 +51,9 @@
     isPlayingAudio: false,
     timerId: null,
     audioElement: null,
+    currentTtsAudio: null,
+    ttsProvider: 'edge-tts', // 'edge-tts' atau 'webspeech'
+    edgeVoice: 'id-ID-GadisNeural', // 'id-ID-GadisNeural' atau 'id-ID-ArdiNeural'
 
     // Inisialisasi Sistem Bel
     init: function() {
@@ -58,6 +67,14 @@
         if (savedVol !== null) {
           this.volume = parseFloat(savedVol) || 0.9;
         }
+        const savedProvider = localStorage.getItem('smkn10_tts_provider');
+        if (savedProvider) {
+          this.ttsProvider = savedProvider;
+        }
+        const savedVoice = localStorage.getItem('smkn10_edge_voice');
+        if (savedVoice) {
+          this.edgeVoice = savedVoice;
+        }
       } catch (_) {}
 
       // Siapkan audio element untuk Indonesia Raya
@@ -68,7 +85,6 @@
         getAudioContext();
         if (window.speechSynthesis) {
           try {
-            // Load voices
             window.speechSynthesis.getVoices();
           } catch (_) {}
         }
@@ -89,7 +105,7 @@
       // Perbarui UI bel
       this.updateUI();
 
-      console.log('🔔 Sistem Bel & Pengumuman Suara SMKN 10 Kolaka aktif.');
+      console.log('🔔 Sistem Bel & Edge-TTS SMKN 10 Kolaka aktif (Suara:', this.edgeVoice, ').');
     },
 
     // Inisialisasi elemen audio Indonesia Raya
@@ -237,21 +253,94 @@
     },
 
     // ─────────────────────────────────────────────────────────
-    // PENGUMUMAN SUARA (Web Speech API - Bahasa Indonesia)
+    // PENGUMUMAN SUARA (Edge-TTS Neural Voice + Web Speech Fallback)
     // ─────────────────────────────────────────────────────────
-    speak: function(text, onComplete) {
+    speak: function(text, onComplete, slug) {
       if (!this.enabled) {
         if (typeof onComplete === 'function') onComplete();
         return;
       }
 
+      this.showAnnouncementBanner(text);
+
+      if (this.ttsProvider === 'edge-tts') {
+        this.speakWithEdgeTTS(text, onComplete, slug);
+      } else {
+        this.speakWithWebSpeech(text, onComplete);
+      }
+    },
+
+    // Pemutaran Suara Microsoft Edge Neural TTS
+    speakWithEdgeTTS: function(text, onComplete, slug) {
+      // Hentikan audio TTS sebelumnya jika sedang bermain
+      if (this.currentTtsAudio) {
+        try {
+          this.currentTtsAudio.pause();
+          this.currentTtsAudio.currentTime = 0;
+        } catch (_) {}
+        this.currentTtsAudio = null;
+      }
+
+      let audioUrl = null;
+
+      // 1. Cek berkas pra-render langsung
+      if (slug) {
+        if (slug.startsWith('guru_')) {
+          const fn = slug.replace('guru_', '');
+          audioUrl = `audio/tts/guru/${fn}.mp3`;
+        } else {
+          audioUrl = `audio/tts/core/${slug}.mp3`;
+        }
+      }
+
+      // 2. Jika tidak ada file statis, gunakan endpoint dynamic tts.php
+      if (!audioUrl) {
+        const cleanText = encodeURIComponent(this.cleanSpokenText(text));
+        audioUrl = `tts.php?text=${cleanText}&voice=${this.edgeVoice || 'id-ID-GadisNeural'}`;
+      }
+
+      try {
+        const audio = new Audio();
+        audio.src = audioUrl;
+        audio.volume = Math.max(0.1, Math.min(1.0, this.volume));
+        this.currentTtsAudio = audio;
+
+        let finished = false;
+        const finish = () => {
+          if (finished) return;
+          finished = true;
+          this.currentTtsAudio = null;
+          if (typeof onComplete === 'function') onComplete();
+        };
+
+        audio.addEventListener('ended', finish);
+
+        audio.addEventListener('error', (err) => {
+          console.warn('Edge-TTS gagal memuat (' + audioUrl + '), beralih ke Web Speech API cadangan:', err);
+          this.speakWithWebSpeech(text, onComplete);
+        });
+
+        const playPromise = audio.play();
+        if (playPromise !== undefined) {
+          playPromise.catch(err => {
+            console.warn('Autoplay Edge-TTS terblokir browser, beralih ke Web Speech API:', err);
+            this.speakWithWebSpeech(text, onComplete);
+          });
+        }
+      } catch (err) {
+        console.warn('Inisialisasi Edge-TTS gagal, beralih ke Web Speech API:', err);
+        this.speakWithWebSpeech(text, onComplete);
+      }
+    },
+
+    // Fallback Web Speech API (Suara Browser Lokal)
+    speakWithWebSpeech: function(text, onComplete) {
       if (!('speechSynthesis' in window)) {
-        console.warn('SpeechSynthesis API tidak didukung pada browser ini.');
         if (typeof onComplete === 'function') onComplete();
         return;
       }
 
-      window.speechSynthesis.cancel(); // Batalkan antrean sebelumnya
+      window.speechSynthesis.cancel();
 
       const spokenClean = this.cleanSpokenText(text);
       const utterance = new SpeechSynthesisUtterance(spokenClean);
@@ -260,7 +349,6 @@
       utterance.pitch = 1.05;
       utterance.volume = Math.max(0.1, Math.min(1.0, this.volume));
 
-      // Pilih suara bahasa Indonesia jika tersedia
       const voices = window.speechSynthesis.getVoices();
       const idVoice = voices.find(v => 
         (v.lang && (v.lang.toLowerCase().startsWith('id') || v.lang.toLowerCase().includes('indonesia'))) ||
@@ -278,20 +366,17 @@
         if (typeof onComplete === 'function') onComplete();
       };
 
-      // Tampilkan toast notifikasi visual pengumuman suara
-      this.showAnnouncementBanner(text);
-
       window.speechSynthesis.speak(utterance);
     },
 
     // Putar Bel Nada + Pengumuman Suara
-    playBellAnnouncement: function(text, onComplete) {
+    playBellAnnouncement: function(text, onComplete, slug) {
       if (!this.enabled) {
         if (typeof onComplete === 'function') onComplete();
         return;
       }
       this.playChime(() => {
-        this.speak(text, onComplete);
+        this.speak(text, onComplete, slug);
       });
     },
 
@@ -304,11 +389,12 @@
         banner.className = 'bell-announcement-banner';
         document.body.appendChild(banner);
       }
+      const providerBadge = this.ttsProvider === 'edge-tts' ? '⚡ Edge Neural TTS' : 'Web Speech';
       banner.innerHTML = `
         <div class="announcement-content">
           <span class="announcement-bell-icon">🔔</span>
           <div class="announcement-text-wrap">
-            <span class="announcement-badge">PENGUMUMAN BEL SEKOLAH</span>
+            <span class="announcement-badge">PENGUMUMAN BEL SEKOLAH • ${providerBadge}</span>
             <p class="announcement-body">${text}</p>
           </div>
           <button class="announcement-close-btn" onclick="SchoolBell.stopSound()" title="Tutup">✕</button>
@@ -357,13 +443,12 @@
           } else {
             this.onAnthemFallback();
           }
-        });
+        }, 'indonesia_raya_intro');
       });
     },
 
-    // Fallback jika file audio tidak dapat diputar
+    // Fallback jika file audio lagu kebangsaan tidak dapat diputar
     onAnthemFallback: function() {
-      // Putar intro brass fanfar sederhana lewat Web Audio
       const ctx = getAudioContext();
       if (ctx) {
         const anthemNotes = [
@@ -402,7 +487,7 @@
           const modal = document.getElementById('modal-indonesia-raya');
           if (modal) modal.style.display = 'none';
         }, 1500);
-      });
+      }, 'indonesia_raya_outro');
     },
 
     // Update progress bar modal Indonesia Raya
@@ -457,6 +542,7 @@
       if (matched.length > 0) {
         return {
           teacher: guru,
+          code: teacherCode,
           jam: jamNumber,
           time: slot.time,
           classes: matched
@@ -541,16 +627,21 @@
     handleScheduleTrigger: function(dayName, timeStr) {
       const loggedTeacher = window.db?.guru;
       const honorific = loggedTeacher ? this.getHonorific(loggedTeacher.nama) : null;
+      const teacherCode = loggedTeacher?.code ? String(loggedTeacher.code).trim().padStart(2, '0') : null;
 
       // A. WAKTU 07.00: Upacara Bendera (Senin) / Apel Pagi
       if (timeStr === '07:00') {
         if (dayName === 'SENIN') {
           this.playBellAnnouncement(
-            "Mohon perhatian, bel tanda persiapan upacara bendera hari Senin telah berbunyi. Kepada seluruh siswa-siswi dan Bapak Ibu Guru, dipersilakan menuju lapangan upacara dengan tertib. Terima kasih."
+            "Mohon perhatian, bel tanda persiapan upacara bendera hari Senin telah berbunyi. Kepada seluruh siswa-siswi dan Bapak Ibu Guru, dipersilakan menuju lapangan upacara dengan tertib. Terima kasih.",
+            null,
+            'upacara_senin'
           );
         } else {
           this.playBellAnnouncement(
-            "Mohon perhatian, bel tanda kegiatan apel pagi dan literasi telah berbunyi. Kepada seluruh siswa-siswi dan Bapak Ibu Guru, selamat memulai aktivitas pagi ini dengan penuh semangat."
+            "Mohon perhatian, bel tanda kegiatan apel pagi dan literasi telah berbunyi. Kepada seluruh siswa-siswi dan Bapak Ibu Guru, selamat memulai aktivitas pagi ini dengan penuh semangat.",
+            null,
+            'apel_pagi'
           );
         }
         return;
@@ -563,11 +654,15 @@
           const clsNames = teaching.classes.map(c => c.className).join(' dan ');
           const subjNames = teaching.classes.map(c => c.subjectName).join(', ');
           this.playBellAnnouncement(
-            `Mohon perhatian, bel tanda masuk jam pelajaran pertama telah berbunyi. Kepada ${honorific}, selamat memasuki kelas ${clsNames} untuk mata pelajaran ${subjNames}. Selamat memulai kegiatan belajar mengajar dengan penuh semangat. Terima kasih.`
+            `Mohon perhatian, bel tanda masuk jam pelajaran pertama telah berbunyi. Kepada ${honorific}, selamat memasuki kelas ${clsNames} untuk mata pelajaran ${subjNames}. Selamat memulai kegiatan belajar mengajar dengan penuh semangat. Terima kasih.`,
+            null,
+            teacherCode ? `guru_masuk_${teacherCode}` : 'jam_pertama'
           );
         } else {
           this.playBellAnnouncement(
-            "Mohon perhatian, bel tanda masuk kelas telah berbunyi. Kepada Bapak dan Ibu Guru, selamat memasuki kelas dan selamat memulai kegiatan belajar mengajar. Terima kasih."
+            "Mohon perhatian, bel tanda masuk jam pelajaran pertama telah berbunyi. Kepada seluruh siswa-siswi dan Bapak Ibu Guru, selamat memasuki kelas dan selamat memulai kegiatan belajar mengajar hari ini dengan penuh semangat. Terima kasih.",
+            null,
+            'jam_pertama'
           );
         }
         return;
@@ -582,16 +677,22 @@
           const clsNames = nextTeaching.classes.map(c => c.className).join(' dan ');
           const subjNames = nextTeaching.classes.map(c => c.subjectName).join(', ');
           this.playBellAnnouncement(
-            `Mohon perhatian, bel pergantian jam pelajaran telah berbunyi. Kepada ${honorific}, jadwal mengajar Anda selanjutnya adalah di kelas ${clsNames} mata pelajaran ${subjNames}. Selamat mengajar. Terima kasih.`
+            `Mohon perhatian, bel pergantian jam pelajaran telah berbunyi. Kepada ${honorific}, jadwal mengajar Anda selanjutnya adalah di kelas ${clsNames} mata pelajaran ${subjNames}. Selamat mengajar. Terima kasih.`,
+            null,
+            teacherCode ? `guru_masuk_${teacherCode}` : 'pergantian_jam'
           );
         } else if (prevTeaching && !nextTeaching) {
           const clsNames = prevTeaching.classes.map(c => c.className).join(' dan ');
           this.playBellAnnouncement(
-            `Mohon perhatian, jam pelajaran telah selesai. Kepada ${honorific}, terima kasih atas dedikasi dan bimbingannya di kelas ${clsNames}. Selamat beristirahat sejenak.`
+            `Mohon perhatian, jam pelajaran telah selesai. Kepada ${honorific}, terima kasih atas dedikasi dan bimbingannya di kelas ${clsNames}. Selamat beristirahat sejenak.`,
+            null,
+            teacherCode ? `guru_selesai_${teacherCode}` : 'pergantian_jam'
           );
         } else {
           this.playBellAnnouncement(
-            "Mohon perhatian, bel pergantian jam pelajaran telah berbunyi. Kepada Bapak dan Ibu Guru pengajar jam berikutnya, selamat memasuki kelas dan selamat melanjutkan kegiatan belajar mengajar. Terima kasih."
+            "Mohon perhatian, bel pergantian jam pelajaran telah berbunyi. Kepada Bapak dan Ibu Guru pengajar jam berikutnya, selamat memasuki kelas dan selamat melanjutkan kegiatan belajar mengajar. Terima kasih.",
+            null,
+            'pergantian_jam'
           );
         }
         return;
@@ -606,16 +707,22 @@
           const clsNames = nextTeaching.classes.map(c => c.className).join(' dan ');
           const subjNames = nextTeaching.classes.map(c => c.subjectName).join(', ');
           this.playBellAnnouncement(
-            `Mohon perhatian, bel tanda masuk jam pelajaran berikutnya telah berbunyi. Kepada ${honorific}, selamat melanjutkan mengajar di kelas ${clsNames} untuk mata pelajaran ${subjNames}. Terima kasih.`
+            `Mohon perhatian, bel tanda masuk jam pelajaran berikutnya telah berbunyi. Kepada ${honorific}, selamat melanjutkan mengajar di kelas ${clsNames} untuk mata pelajaran ${subjNames}. Terima kasih.`,
+            null,
+            teacherCode ? `guru_masuk_${teacherCode}` : 'pergantian_jam'
           );
         } else if (prevTeaching && !nextTeaching) {
           const clsNames = prevTeaching.classes.map(c => c.className).join(' dan ');
           this.playBellAnnouncement(
-            `Mohon perhatian, jam pelajaran telah berakhir. Kepada ${honorific}, terima kasih atas dedikasi dan bimbingan Anda di kelas ${clsNames}.`
+            `Mohon perhatian, jam pelajaran telah berakhir. Kepada ${honorific}, terima kasih atas dedikasi dan bimbingan Anda di kelas ${clsNames}.`,
+            null,
+            teacherCode ? `guru_selesai_${teacherCode}` : 'pergantian_jam'
           );
         } else {
           this.playBellAnnouncement(
-            "Mohon perhatian, bel tanda masuk jam pelajaran berikutnya telah berbunyi. Kepada Bapak dan Ibu Guru, selamat melanjutkan kegiatan belajar mengajar. Terima kasih."
+            "Mohon perhatian, bel tanda masuk jam pelajaran berikutnya telah berbunyi. Kepada Bapak dan Ibu Guru, selamat melanjutkan kegiatan belajar mengajar. Terima kasih.",
+            null,
+            'pergantian_jam'
           );
         }
         return;
@@ -627,11 +734,15 @@
         if (prevTeaching) {
           const clsNames = prevTeaching.classes.map(c => c.className).join(' dan ');
           this.playBellAnnouncement(
-            `Mohon perhatian, bel tanda waktu istirahat pertama telah berbunyi. Kepada ${honorific}, terima kasih atas pengajaran di kelas ${clsNames}. Selamat menikmati waktu istirahat bersama seluruh dewan guru.`
+            `Mohon perhatian, bel tanda waktu istirahat pertama telah berbunyi. Kepada ${honorific}, terima kasih atas pengajaran di kelas ${clsNames}. Selamat menikmati waktu istirahat bersama seluruh dewan guru.`,
+            null,
+            teacherCode ? `guru_selesai_${teacherCode}` : 'istirahat_1'
           );
         } else {
           this.playBellAnnouncement(
-            "Mohon perhatian, bel tanda waktu istirahat pertama telah berbunyi. Selamat beristirahat kepada seluruh siswa-siswi dan Bapak Ibu Guru. Tetap jaga kebersihan lingkungan sekolah dan buanglah sampah pada tempatnya. Terima kasih."
+            "Mohon perhatian, bel tanda waktu istirahat pertama telah berbunyi. Selamat beristirahat kepada seluruh siswa-siswi dan Bapak Ibu Guru. Tetap jaga kebersihan lingkungan sekolah dan buanglah sampah pada tempatnya. Terima kasih.",
+            null,
+            'istirahat_1'
           );
         }
         return;
@@ -644,11 +755,15 @@
           const clsNames = nextTeaching.classes.map(c => c.className).join(' dan ');
           const subjNames = nextTeaching.classes.map(c => c.subjectName).join(', ');
           this.playBellAnnouncement(
-            `Mohon perhatian, bel tanda masuk kelas telah berbunyi. Kepada ${honorific}, jadwal Anda saat ini di kelas ${clsNames} mata pelajaran ${subjNames}. Selamat mengajar. Terima kasih.`
+            `Mohon perhatian, bel tanda masuk kelas telah berbunyi. Kepada ${honorific}, jadwal Anda saat ini di kelas ${clsNames} mata pelajaran ${subjNames}. Selamat mengajar. Terima kasih.`,
+            null,
+            teacherCode ? `guru_masuk_${teacherCode}` : 'masuk_umum'
           );
         } else {
           this.playBellAnnouncement(
-            "Mohon perhatian, bel tanda masuk kelas telah berbunyi. Kepada Bapak dan Ibu Guru, selamat memasuki kelas dan selamat melanjutkan kegiatan belajar mengajar. Terima kasih."
+            "Mohon perhatian, bel tanda masuk kelas telah berbunyi. Kepada Bapak dan Ibu Guru, selamat memasuki kelas dan selamat melanjutkan kegiatan belajar mengajar. Terima kasih.",
+            null,
+            'masuk_umum'
           );
         }
         return;
@@ -660,18 +775,24 @@
       if (timeStr === '11:30') {
         if (dayName === 'JUMAT') {
           this.playBellAnnouncement(
-            "Mohon perhatian, waktu persiapan ibadah sholat Jumat telah tiba. Kepada seluruh dewan guru dan siswa muslim SMK Negeri 10 Kolaka, dipersilakan bersiap menuju masjid untuk menunaikan sholat Jumat berjamaah. Selamat beristirahat."
+            "Mohon perhatian, waktu persiapan ibadah sholat Jumat telah tiba. Kepada seluruh dewan guru dan siswa muslim SMK Negeri 10 Kolaka, dipersilakan bersiap menuju masjid untuk menunaikan sholat Jumat berjamaah. Selamat beristirahat.",
+            null,
+            'sholat_jumat'
           );
         } else {
           const nextTeaching = this.getActiveTeacherTeaching(dayName, 8);
           if (nextTeaching) {
             const clsNames = nextTeaching.classes.map(c => c.className).join(' dan ');
             this.playBellAnnouncement(
-              `Mohon perhatian, bel tanda masuk kelas telah berbunyi. Kepada ${honorific}, selamat mengajar di kelas ${clsNames}. Terima kasih.`
+              `Mohon perhatian, bel tanda masuk kelas telah berbunyi. Kepada ${honorific}, selamat mengajar di kelas ${clsNames}. Terima kasih.`,
+              null,
+              teacherCode ? `guru_masuk_${teacherCode}` : 'masuk_umum'
             );
           } else {
             this.playBellAnnouncement(
-              "Mohon perhatian, bel tanda masuk kelas telah berbunyi. Kepada Bapak dan Ibu Guru, selamat memasuki kelas dan selamat melanjutkan kegiatan belajar mengajar. Terima kasih."
+              "Mohon perhatian, bel tanda masuk kelas telah berbunyi. Kepada Bapak dan Ibu Guru, selamat memasuki kelas dan selamat melanjutkan kegiatan belajar mengajar. Terima kasih.",
+              null,
+              'masuk_umum'
             );
           }
         }
@@ -684,11 +805,15 @@
         if (prevTeaching) {
           const clsNames = prevTeaching.classes.map(c => c.className).join(' dan ');
           this.playBellAnnouncement(
-            `Mohon perhatian, waktu istirahat kedua dan sholat Dhuhur telah tiba. Kepada ${honorific}, terima kasih atas pengajaran di kelas ${clsNames}. Selamat menunaikan ibadah sholat dan menikmati waktu istirahat.`
+            `Mohon perhatian, waktu istirahat kedua dan sholat Dhuhur telah tiba. Kepada ${honorific}, terima kasih atas pengajaran di kelas ${clsNames}. Selamat menunaikan ibadah sholat dan menikmati waktu istirahat.`,
+            null,
+            teacherCode ? `guru_selesai_${teacherCode}` : 'sholat_dhuhur'
           );
         } else {
           this.playBellAnnouncement(
-            "Mohon perhatian, bel tanda waktu istirahat kedua dan sholat Dhuhur telah berbunyi. Kepada seluruh warga SMK Negeri 10 Kolaka, selamat menunaikan ibadah sholat Dhuhur dan selamat menikmati waktu istirahat. Terima kasih."
+            "Mohon perhatian, bel tanda waktu istirahat kedua dan sholat Dhuhur telah berbunyi. Kepada seluruh warga SMK Negeri 10 Kolaka, selamat menunaikan ibadah sholat Dhuhur dan selamat menikmati waktu istirahat. Terima kasih.",
+            null,
+            'sholat_dhuhur'
           );
         }
         return;
@@ -703,11 +828,15 @@
           const clsNames = nextTeaching.classes.map(c => c.className).join(' dan ');
           const subjNames = nextTeaching.classes.map(c => c.subjectName).join(', ');
           this.playBellAnnouncement(
-            `Mohon perhatian, bel tanda masuk kelas sesi siang telah berbunyi. Kepada ${honorific}, selamat memasuki kelas ${clsNames} mata pelajaran ${subjNames}. Selamat melanjutkan kegiatan belajar mengajar. Terima kasih.`
+            `Mohon perhatian, bel tanda masuk kelas sesi siang telah berbunyi. Kepada ${honorific}, selamat memasuki kelas ${clsNames} mata pelajaran ${subjNames}. Selamat melanjutkan kegiatan belajar mengajar. Terima kasih.`,
+            null,
+            teacherCode ? `guru_masuk_${teacherCode}` : 'masuk_umum'
           );
         } else {
           this.playBellAnnouncement(
-            "Mohon perhatian, bel tanda masuk kelas sesi siang telah berbunyi. Kepada Bapak dan Ibu Guru, selamat memasuki kelas dan selamat melanjutkan kegiatan belajar mengajar. Terima kasih."
+            "Mohon perhatian, bel tanda masuk kelas sesi siang telah berbunyi. Kepada Bapak dan Ibu Guru, selamat memasuki kelas dan selamat melanjutkan kegiatan belajar mengajar. Terima kasih.",
+            null,
+            'masuk_umum'
           );
         }
         return;
@@ -719,11 +848,15 @@
         if (nextTeaching) {
           const clsNames = nextTeaching.classes.map(c => c.className).join(' dan ');
           this.playBellAnnouncement(
-            `Mohon perhatian, bel tanda pergantian jam telah berbunyi. Kepada ${honorific}, jadwal mengajar Anda di kelas ${clsNames}. Selamat mengajar.`
+            `Mohon perhatian, bel tanda pergantian jam telah berbunyi. Kepada ${honorific}, jadwal mengajar Anda di kelas ${clsNames}. Selamat mengajar.`,
+            null,
+            teacherCode ? `guru_masuk_${teacherCode}` : 'pergantian_jam'
           );
         } else {
           this.playBellAnnouncement(
-            "Mohon perhatian, bel tanda masuk kelas telah berbunyi. Kepada Bapak dan Ibu Guru, selamat memasuki kelas dan selamat melanjutkan kegiatan belajar mengajar. Terima kasih."
+            "Mohon perhatian, bel tanda masuk kelas telah berbunyi. Kepada Bapak dan Ibu Guru, selamat memasuki kelas dan selamat melanjutkan kegiatan belajar mengajar. Terima kasih.",
+            null,
+            'pergantian_jam'
           );
         }
         return;
@@ -735,11 +868,15 @@
         if (nextTeaching) {
           const clsNames = nextTeaching.classes.map(c => c.className).join(' dan ');
           this.playBellAnnouncement(
-            `Mohon perhatian, bel tanda masuk jam pelajaran terakhir telah berbunyi. Kepada ${honorific}, selamat mengajar di kelas ${clsNames}. Terima kasih.`
+            `Mohon perhatian, bel tanda masuk jam pelajaran terakhir telah berbunyi. Kepada ${honorific}, selamat mengajar di kelas ${clsNames}. Terima kasih.`,
+            null,
+            teacherCode ? `guru_masuk_${teacherCode}` : 'pergantian_jam'
           );
         } else {
           this.playBellAnnouncement(
-            "Mohon perhatian, bel tanda masuk jam pelajaran terakhir telah berbunyi. Kepada Bapak dan Ibu Guru, selamat menyelesaikan kegiatan belajar mengajar hari ini. Terima kasih."
+            "Mohon perhatian, bel tanda masuk jam pelajaran terakhir telah berbunyi. Kepada Bapak dan Ibu Guru, selamat menyelesaikan kegiatan belajar mengajar hari ini. Terima kasih.",
+            null,
+            'pergantian_jam'
           );
         }
         return;
@@ -748,7 +885,9 @@
       // L. WAKTU 15.00 (atau 14.45 Jumat): JAM PULANG SEKOLAH (SELESAI KBM)
       if (timeStr === '15:00' || (timeStr === '14:45' && dayName === 'JUMAT')) {
         this.playBellAnnouncement(
-          "Mohon perhatian, bel tanda berakhirnya seluruh kegiatan belajar mengajar hari ini telah berbunyi. Kepada seluruh siswa-siswi dan Bapak Ibu Guru, selamat kembali ke rumah masing-masing. Hati-hati di jalan dan sampai jumpa esok hari. Terima kasih."
+          "Mohon perhatian, bel tanda berakhirnya seluruh kegiatan belajar mengajar hari ini telah berbunyi. Kepada seluruh siswa-siswi dan Bapak Ibu Guru, selamat kembali ke rumah masing-masing. Hati-hati di jalan dan sampai jumpa esok hari. Terima kasih.",
+          null,
+          'pulang'
         );
         return;
       }
@@ -761,11 +900,14 @@
       getAudioContext();
       const guru = window.db?.guru;
       const honorific = guru ? this.getHonorific(guru.nama) : 'Bapak dan Ibu Guru';
+      const teacherCode = guru?.code ? String(guru.code).trim().padStart(2, '0') : null;
 
       switch (type) {
         case 'masuk':
           this.playBellAnnouncement(
-            "Mohon perhatian, bel tanda masuk kelas telah berbunyi. Kepada Bapak dan Ibu Guru, selamat memasuki kelas dan selamat memulai kegiatan belajar mengajar. Terima kasih."
+            "Mohon perhatian, bel tanda masuk kelas telah berbunyi. Kepada Bapak dan Ibu Guru, selamat memasuki kelas dan selamat memulai kegiatan belajar mengajar. Terima kasih.",
+            null,
+            'masuk_umum'
           );
           break;
 
@@ -776,11 +918,15 @@
             const cls = firstSlot ? firstSlot.className : 'X TKJ';
             const mapel = firstSlot ? firstSlot.subjectName : (guru.mapel || 'Informatika');
             this.playBellAnnouncement(
-              `Mohon perhatian, bel tanda masuk kelas telah berbunyi. Kepada ${honorific}, saat ini adalah jadwal mengajar Anda di kelas ${cls} untuk mata pelajaran ${mapel}. Selamat memasuki kelas dan selamat memulai kegiatan belajar mengajar. Terima kasih.`
+              `Mohon perhatian, bel tanda masuk kelas telah berbunyi. Kepada ${honorific}, saat ini adalah jadwal mengajar Anda di kelas ${cls} untuk mata pelajaran ${mapel}. Selamat memasuki kelas dan selamat memulai kegiatan belajar mengajar. Terima kasih.`,
+              null,
+              teacherCode ? `guru_masuk_${teacherCode}` : 'masuk_umum'
             );
           } else {
             this.playBellAnnouncement(
-              "Mohon perhatian, bel tanda masuk kelas telah berbunyi. Kepada Bapak dan Ibu Guru, selamat memasuki kelas dan selamat memulai kegiatan belajar mengajar. Terima kasih."
+              "Mohon perhatian, bel tanda masuk kelas telah berbunyi. Kepada Bapak dan Ibu Guru, selamat memasuki kelas dan selamat memulai kegiatan belajar mengajar. Terima kasih.",
+              null,
+              'masuk_umum'
             );
           }
           break;
@@ -791,11 +937,15 @@
             const firstSlot = todaySch[0];
             const cls = firstSlot ? firstSlot.className : 'X TKJ';
             this.playBellAnnouncement(
-              `Mohon perhatian, jam pelajaran telah berakhir. Kepada ${honorific}, terima kasih atas dedikasi dan bimbingan Anda di kelas ${cls}. Selamat beristirahat sejenak atau melanjutkan kegiatan berikutnya. Terima kasih.`
+              `Mohon perhatian, jam pelajaran telah berakhir. Kepada ${honorific}, terima kasih atas dedikasi dan bimbingan Anda di kelas ${cls}. Selamat beristirahat sejenak atau melanjutkan kegiatan berikutnya. Terima kasih.`,
+              null,
+              teacherCode ? `guru_selesai_${teacherCode}` : 'pergantian_jam'
             );
           } else {
             this.playBellAnnouncement(
-              "Mohon perhatian, jam pelajaran telah berakhir. Kepada Bapak dan Ibu Guru pada jam berikutnya, dipersilakan mempersiapkan diri untuk memasuki ruang kelas. Terima kasih."
+              "Mohon perhatian, jam pelajaran telah berakhir. Kepada Bapak dan Ibu Guru pada jam berikutnya, dipersilakan mempersiapkan diri untuk memasuki ruang kelas. Terima kasih.",
+              null,
+              'pergantian_jam'
             );
           }
           break;
@@ -806,19 +956,25 @@
 
         case 'istirahat':
           this.playBellAnnouncement(
-            "Mohon perhatian, bel tanda waktu istirahat pertama telah berbunyi. Selamat beristirahat kepada seluruh siswa-siswi dan Bapak Ibu Guru. Tetap jaga kebersihan lingkungan sekolah dan buanglah sampah pada tempatnya. Terima kasih."
+            "Mohon perhatian, bel tanda waktu istirahat pertama telah berbunyi. Selamat beristirahat kepada seluruh siswa-siswi dan Bapak Ibu Guru. Tetap jaga kebersihan lingkungan sekolah dan buanglah sampah pada tempatnya. Terima kasih.",
+            null,
+            'istirahat_1'
           );
           break;
 
         case 'sholat':
           this.playBellAnnouncement(
-            "Mohon perhatian, bel tanda waktu istirahat kedua dan sholat Dhuhur telah berbunyi. Kepada seluruh warga SMK Negeri 10 Kolaka, selamat menunaikan ibadah sholat Dhuhur dan selamat menikmati waktu istirahat. Terima kasih."
+            "Mohon perhatian, bel tanda waktu istirahat kedua dan sholat Dhuhur telah berbunyi. Kepada seluruh warga SMK Negeri 10 Kolaka, selamat menunaikan ibadah sholat Dhuhur dan selamat menikmati waktu istirahat. Terima kasih.",
+            null,
+            'sholat_dhuhur'
           );
           break;
 
         case 'pulang':
           this.playBellAnnouncement(
-            "Mohon perhatian, bel tanda berakhirnya seluruh kegiatan belajar mengajar hari ini telah berbunyi. Kepada seluruh siswa-siswi dan Bapak Ibu Guru, selamat kembali ke rumah masing-masing. Hati-hati di jalan dan sampai jumpa esok hari. Terima kasih."
+            "Mohon perhatian, bel tanda berakhirnya seluruh kegiatan belajar mengajar hari ini telah berbunyi. Kepada seluruh siswa-siswi dan Bapak Ibu Guru, selamat kembali ke rumah masing-masing. Hati-hati di jalan dan sampai jumpa esok hari. Terima kasih.",
+            null,
+            'pulang'
           );
           break;
 
@@ -830,6 +986,13 @@
 
     // Hentikan suara apa pun yang sedang berlangsung
     stopSound: function() {
+      if (this.currentTtsAudio) {
+        try {
+          this.currentTtsAudio.pause();
+          this.currentTtsAudio.currentTime = 0;
+        } catch (_) {}
+        this.currentTtsAudio = null;
+      }
       if (window.speechSynthesis) {
         window.speechSynthesis.cancel();
       }
@@ -874,6 +1037,33 @@
       } catch (_) {}
       if (this.audioElement) {
         this.audioElement.volume = this.volume;
+      }
+      if (this.currentTtsAudio) {
+        this.currentTtsAudio.volume = this.volume;
+      }
+      this.updateUI();
+    },
+
+    // Atur Provider Suara (edge-tts vs webspeech)
+    setProvider: function(prov) {
+      this.ttsProvider = prov;
+      try {
+        localStorage.setItem('smkn10_tts_provider', prov);
+      } catch (_) {}
+      if (typeof window.showToast === 'function') {
+        window.showToast(`Penyedia Suara Bel diubah ke: ${prov === 'edge-tts' ? 'Microsoft Edge Neural TTS' : 'Web Speech Browser'}`, 'ok');
+      }
+      this.updateUI();
+    },
+
+    // Atur Karakter Suara Edge-TTS
+    setVoice: function(voiceName) {
+      this.edgeVoice = voiceName;
+      try {
+        localStorage.setItem('smkn10_edge_voice', voiceName);
+      } catch (_) {}
+      if (typeof window.showToast === 'function') {
+        window.showToast(`Karakter Suara diubah: ${voiceName === 'id-ID-ArdiNeural' ? 'Ardi (Laki-laki)' : 'Gadis (Perempuan)'}`, 'ok');
       }
       this.updateUI();
     },
@@ -924,6 +1114,12 @@
       // Toggle checkbox di modal
       const chk = document.getElementById('bell-enabled-toggle');
       if (chk) chk.checked = this.enabled;
+
+      // Select provider & voice
+      const selProv = document.getElementById('bell-provider-select');
+      if (selProv) selProv.value = this.ttsProvider;
+      const selVoice = document.getElementById('bell-voice-select');
+      if (selVoice) selVoice.value = this.edgeVoice;
     },
 
     // Perbarui Widget di Dashboard
@@ -970,7 +1166,6 @@
           if (todaySch.length === 0) {
             teacherSlotEl.innerHTML = `🏖️ <b>${guru.nama}</b>: Tidak ada jadwal tatap muka hari ${dayName}.`;
           } else {
-            // Cek apakah ada jadwal jam ini
             const activeNow = todaySch.find(s => {
               const parts = s.time.split('-').map(x => x.trim().replace('.', ':'));
               return timeStr >= parts[0] && timeStr < parts[1];
@@ -1000,7 +1195,7 @@
       let html = `
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
           <span style="font-size:12px;font-weight:700;color:var(--text-muted)">Jadwal Bel Aktif: <b>${activeDay}</b></span>
-          <span style="font-size:11px;background:#e0f2fe;color:#0369a1;padding:3px 8px;border-radius:12px;font-weight:700">Otomatis Per Detik</span>
+          <span style="font-size:11px;background:#e0f2fe;color:#0369a1;padding:3px 8px;border-radius:12px;font-weight:700">⚡ Edge-TTS Neural Audio</span>
         </div>
         <table class="bell-sched-mini-table">
           <thead>

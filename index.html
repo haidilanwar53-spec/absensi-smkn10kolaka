@@ -2074,6 +2074,30 @@
           <input type="range" id="bell-vol-slider" min="10" max="100" value="90" oninput="SchoolBell.setVolume(this.value/100)" style="width:100%;accent-color:#10b981" />
         </div>
 
+        <!-- Mesin Text-to-Speech (Edge-TTS) -->
+        <div class="bell-setting-row" style="flex-direction:column;align-items:stretch;gap:10px;background:rgba(16,185,129,0.06);padding:12px;border-radius:12px;border:1px solid rgba(16,185,129,0.25)">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+            <div class="bell-setting-info">
+              <span class="bell-setting-title" style="color:#065f46">⚡ Mesin Text-to-Speech (TTS)</span>
+              <span class="bell-setting-desc">Penyedia suara vokal Bahasa Indonesia</span>
+            </div>
+            <select id="bell-provider-select" onchange="SchoolBell.setProvider(this.value)" style="padding:6px 10px;font-size:12px;font-weight:700;border-radius:8px;border:1.5px solid #10b981;background:var(--bg);color:var(--text)">
+              <option value="edge-tts" selected>⚡ Microsoft Edge Neural TTS (Studio Quality)</option>
+              <option value="webspeech">🔊 Web Speech API Browser (Lokal)</option>
+            </select>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+            <div class="bell-setting-info">
+              <span class="bell-setting-title" style="color:#065f46">Karakter Suara Edge-TTS</span>
+              <span class="bell-setting-desc">Pilihan model neural resmi Microsoft</span>
+            </div>
+            <select id="bell-voice-select" onchange="SchoolBell.setVoice(this.value)" style="padding:6px 10px;font-size:12px;font-weight:700;border-radius:8px;border:1.5px solid #10b981;background:var(--bg);color:var(--text)">
+              <option value="id-ID-GadisNeural" selected>👩 Gadis (Perempuan – Ramah, Halus &amp; Jernih)</option>
+              <option value="id-ID-ArdiNeural">👨 Ardi (Laki-Laki – Berwibawa &amp; Tegas)</option>
+            </select>
+          </div>
+        </div>
+
         <!-- Interactive Voice Test Grid -->
         <div>
           <span style="font-size:12px;font-weight:700;color:var(--text-muted);display:block;margin-bottom:8px">UJI COBA SUARA &amp; PENGUMUMAN RESMI:</span>
