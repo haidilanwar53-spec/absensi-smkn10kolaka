@@ -3081,7 +3081,11 @@ function simpanAbsensi() {
   });
 
   saveDB();
-  showToast('Absensi berhasil disimpan! 💾','ok');
+  if (window.SupabaseSync && typeof window.SupabaseSync.uploadSession === 'function') {
+    const lastSession = db.absensi[db.absensi.length - 1];
+    if (lastSession) window.SupabaseSync.uploadSession(lastSession);
+  }
+  showToast('Absensi berhasil disimpan! 💾 (Tersinkron ke Cloud ☁️)','ok');
 }
 
 function exportPertemuan() {
@@ -5801,6 +5805,9 @@ function saveFaceEnroll() {
   };
 
   saveDB();
+  if (window.SupabaseSync && typeof window.SupabaseSync.uploadFaceBiometric === 'function') {
+    window.SupabaseSync.uploadFaceBiometric(currentEnrollKey, currentEnrollName, features, enrolledBase64);
+  }
   Sound.success();
   showToast(`Wajah ${currentEnrollName} berhasil didaftarkan 🎉`, 'ok');
   closeFaceEnrollModal();
@@ -6312,6 +6319,9 @@ function processTeacherAttendanceRecord(nama, nip, code, metode, forceType) {
   }
 
   saveDB();
+  if (window.SupabaseSync && typeof window.SupabaseSync.uploadTeacherPresence === 'function') {
+    window.SupabaseSync.uploadTeacherPresence(existing);
+  }
   Sound.success();
 
   const statusBox = document.getElementById('abg-status-box');
@@ -6656,6 +6666,10 @@ function saveActiveSessionSilently() {
   });
 
   saveDB();
+  if (window.SupabaseSync && typeof window.SupabaseSync.uploadSession === 'function') {
+    const lastSession = db.absensi[db.absensi.length - 1];
+    if (lastSession) window.SupabaseSync.uploadSession(lastSession);
+  }
 }
 
 // ─────────────────────────────────────────────

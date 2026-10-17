@@ -151,6 +151,12 @@
             <span id="topbar-bell-text">Bel Aktif</span>
             <span class="bell-pulse-dot active" id="topbar-bell-dot"></span>
           </button>
+          <!-- Topbar Cloud Supabase Status -->
+          <button class="btn-liquid-topbar btn-liquid-cloud" id="cloud-sync-badge" onclick="window.SupabaseSync.manualSync()" title="Sinkronisasi Cloud Supabase (Klik untuk sync manual)">
+            <span class="btn-liquid-icon">☁️</span>
+            <span id="cloud-sync-text">Cloud Sync</span>
+            <span class="cloud-pulse-dot" id="cloud-sync-dot"></span>
+          </button>
           <button class="btn-liquid-topbar" onclick="openTeacherSwitchModal()" title="Masuk atau berganti akun guru (24 Guru)">
             <span class="btn-liquid-icon">👤</span>
             <span id="topbar-teacher-btn-name">Ganti Akun Guru</span>
@@ -2139,9 +2145,16 @@
   </div>
 
   <audio id="audio-indonesia-raya" src="audio/indonesia_raya.ogg" preload="auto"></audio>
+  <script src="vendor/supabase.min.js"></script>
+  <script>
+    if (typeof window.supabase === 'undefined') {
+      document.write('<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"><\/script>');
+    }
+  </script>
   <script src="sk_data.js?v=20261015_11"></script>
   <script src="bell.js?v=20261017_01"></script>
-  <script src="app.js?v=20261017_01"></script>
+  <script src="supabase-sync.js?v=20261017_01"></script>
+  <script src="app.js?v=20261017_02"></script>
 </body>
 
 </html>
