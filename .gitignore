@@ -10,3 +10,5 @@ style.css.bak
 .DS_Store
 Thumbs.db
 desktop.ini
+# Playwright CLI output (may contain credentials)
+.playwright-cli/
