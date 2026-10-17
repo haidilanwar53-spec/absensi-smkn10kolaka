@@ -1707,6 +1707,12 @@ function submitTeacherSwitch() {
 
       closeTeacherSwitchModal();
       showToast(`Selamat datang, ${t.name}! 👋`, 'ok');
+      if (window.SchoolBell) {
+        try {
+          const d = new Date();
+          window.SchoolBell.updateDashboardWidget(d.toTimeString().slice(0, 5), d.getDay());
+        } catch(_) {}
+      }
     }
   });
 }
@@ -2350,6 +2356,12 @@ function saveSetup() {
     try { refreshAbMapelOptions(); } catch(e) { console.warn(e); }
     try { refreshRekapMapelOptions(); } catch(e) { console.warn(e); }
     try { renderMapelList(); } catch(e) { console.warn(e); }
+    if (window.SchoolBell) {
+      try {
+        const d = new Date();
+        window.SchoolBell.updateDashboardWidget(d.toTimeString().slice(0, 5), d.getDay());
+      } catch(_) {}
+    }
     showToast(`Login berhasil! Selamat datang, ${nama} 🎉`, 'ok');
     setTimeout(() => showPage('dashboard'), 400);
   } catch (err) {
