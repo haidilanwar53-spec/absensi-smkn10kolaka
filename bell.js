@@ -884,11 +884,19 @@
 
       // L. WAKTU 15.00 (atau 14.45 Jumat): JAM PULANG SEKOLAH (SELESAI KBM)
       if (timeStr === '15:00' || (timeStr === '14:45' && dayName === 'JUMAT')) {
-        this.playBellAnnouncement(
-          "Mohon perhatian, bel tanda berakhirnya seluruh kegiatan belajar mengajar hari ini telah berbunyi. Kepada seluruh siswa-siswi dan Bapak Ibu Guru, selamat kembali ke rumah masing-masing. Hati-hati di jalan dan sampai jumpa esok hari. Terima kasih.",
-          null,
-          'pulang'
-        );
+        if (dayName === 'SABTU') {
+          this.playBellAnnouncement(
+            "Mohon perhatian, bel tanda berakhirnya seluruh kegiatan belajar mengajar hari ini telah berbunyi. Kepada seluruh siswa-siswi dan Bapak Ibu Guru, selamat kembali ke rumah masing-masing. Hati-hati di jalan, selamat berlibur akhir pekan, dan sampai jumpa hari Senin. Terima kasih.",
+            null,
+            'pulang_sabtu'
+          );
+        } else {
+          this.playBellAnnouncement(
+            "Mohon perhatian, bel tanda berakhirnya seluruh kegiatan belajar mengajar hari ini telah berbunyi. Kepada seluruh siswa-siswi dan Bapak Ibu Guru, selamat kembali ke rumah masing-masing. Hati-hati di jalan dan sampai jumpa esok hari. Terima kasih.",
+            null,
+            'pulang'
+          );
+        }
         return;
       }
     },
@@ -971,10 +979,28 @@
           break;
 
         case 'pulang':
+          const currentDayIdx = new Date().getDay();
+          const isSabtu = currentDayIdx === 6; // 6 adalah hari Sabtu
+          if (isSabtu) {
+            this.playBellAnnouncement(
+              "Mohon perhatian, bel tanda berakhirnya seluruh kegiatan belajar mengajar hari ini telah berbunyi. Kepada seluruh siswa-siswi dan Bapak Ibu Guru, selamat kembali ke rumah masing-masing. Hati-hati di jalan, selamat berlibur akhir pekan, dan sampai jumpa hari Senin. Terima kasih.",
+              null,
+              'pulang_sabtu'
+            );
+          } else {
+            this.playBellAnnouncement(
+              "Mohon perhatian, bel tanda berakhirnya seluruh kegiatan belajar mengajar hari ini telah berbunyi. Kepada seluruh siswa-siswi dan Bapak Ibu Guru, selamat kembali ke rumah masing-masing. Hati-hati di jalan dan sampai jumpa esok hari. Terima kasih.",
+              null,
+              'pulang'
+            );
+          }
+          break;
+
+        case 'pulang_sabtu':
           this.playBellAnnouncement(
-            "Mohon perhatian, bel tanda berakhirnya seluruh kegiatan belajar mengajar hari ini telah berbunyi. Kepada seluruh siswa-siswi dan Bapak Ibu Guru, selamat kembali ke rumah masing-masing. Hati-hati di jalan dan sampai jumpa esok hari. Terima kasih.",
+            "Mohon perhatian, bel tanda berakhirnya seluruh kegiatan belajar mengajar hari ini telah berbunyi. Kepada seluruh siswa-siswi dan Bapak Ibu Guru, selamat kembali ke rumah masing-masing. Hati-hati di jalan, selamat berlibur akhir pekan, dan sampai jumpa hari Senin. Terima kasih.",
             null,
-            'pulang'
+            'pulang_sabtu'
           );
           break;
 

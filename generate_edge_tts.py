@@ -61,6 +61,11 @@ CORE_ANNOUNCEMENTS = {
         "Kepada seluruh siswa-siswi dan Bapak Ibu Guru, selamat kembali ke rumah masing-masing. "
         "Hati-hati di jalan dan sampai jumpa esok hari. Terima kasih."
     ),
+    "pulang_sabtu": (
+        "Mohon perhatian, bel tanda berakhirnya seluruh kegiatan belajar mengajar hari ini telah berbunyi. "
+        "Kepada seluruh siswa-siswi dan Bapak Ibu Guru, selamat kembali ke rumah masing-masing. "
+        "Hati-hati di jalan, selamat berlibur akhir pekan, dan sampai jumpa hari Senin. Terima kasih."
+    ),
     "upacara_senin": (
         "Mohon perhatian, bel tanda persiapan upacara bendera hari Senin telah berbunyi. "
         "Kepada seluruh siswa-siswi dan Bapak Ibu Guru, dipersilakan menuju lapangan upacara dengan tertib. Terima kasih."
