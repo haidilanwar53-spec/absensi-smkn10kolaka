@@ -531,7 +531,8 @@ function loadDB() {
     const raw = localStorage.getItem('smkn10_v2');
     if (raw) db = JSON.parse(raw);
   } catch(_) {}
-  db.adminPin    = db.adminPin    || 'admin10';
+  db.adminPinHash = db.adminPinHash || '30cdc6c9b0a19ff36d0f66103a995876247b5c102087199051c13defe792ba15';
+  delete db.adminPin;
   db.teacherPins = db.teacherPins || {};
   db.guru        = db.guru        || null;
   db.mapel     = db.mapel     || [];
@@ -862,6 +863,27 @@ async function cryptoSha256(message) {
   }
 }
 
+// Default Admin PIN Hash (SHA-256 of 'admin10')
+const DEFAULT_ADMIN_PIN_HASH = '30cdc6c9b0a19ff36d0f66103a995876247b5c102087199051c13defe792ba15';
+
+async function verifyAdminPin(enteredPin) {
+  if (!enteredPin) return false;
+  const hash = await cryptoSha256(String(enteredPin).trim());
+  if (db && db.adminPinHash) {
+    return hash === db.adminPinHash;
+  }
+  if (db && db.adminPin) {
+    const customHash = await cryptoSha256(String(db.adminPin).trim());
+    if (hash === customHash) {
+      db.adminPinHash = customHash;
+      delete db.adminPin;
+      saveDB();
+      return true;
+    }
+  }
+  return hash === DEFAULT_ADMIN_PIN_HASH;
+}
+
 // 2. Anti-Brute-Force Rate Limiter & Lockout Guard
 const SecurityGuard = {
   MAX_ATTEMPTS: 5,
@@ -1147,9 +1169,9 @@ async function submitAdminAuth() {
   const btn = document.getElementById('btn-admin-auth-submit');
 
   const val = input ? input.value.trim() : '';
-  const adminPin = getAdminPin();
+  const isMatch = await verifyAdminPin(val);
 
-  if (val === adminPin) {
+  if (isMatch) {
     SecurityGuard.recordSuccess('admin');
     await issueAdminSessionToken();
 
@@ -1229,7 +1251,7 @@ function toggleAdminPassVisibility(inputId, btn) {
   }
 }
 
-function simpanSandiAdmin() {
+async function simpanSandiAdmin() {
   const curInp = document.getElementById('admin-current-pin');
   const newInp = document.getElementById('admin-new-pin');
   const confInp = document.getElementById('admin-confirm-pin');
@@ -1239,7 +1261,8 @@ function simpanSandiAdmin() {
   const newVal = newInp ? newInp.value.trim() : '';
   const confVal = confInp ? confInp.value.trim() : '';
 
-  if (curVal !== getAdminPin()) {
+  const isMatch = await verifyAdminPin(curVal);
+  if (!isMatch) {
     showToast('Sandi Admin saat ini tidak sesuai!', 'err');
     if (statusMsg) {
       statusMsg.style.color = '#ef4444';
@@ -1269,7 +1292,9 @@ function simpanSandiAdmin() {
     return;
   }
 
-  db.adminPin = newVal;
+  // Hash new password using SHA-256 (Password harus di-hash)
+  db.adminPinHash = await cryptoSha256(newVal);
+  delete db.adminPin; // Remove plain text
   saveDB();
 
   if (curInp) curInp.value = '';
@@ -3739,19 +3764,35 @@ function restoreData(evt) {
   }
   const file = evt.target.files[0];
   if (!file) return;
+
+  // 1. File size limit: max 10 MB (Upload file dibatasi)
+  if (file.size > 10 * 1024 * 1024) {
+    showToast('File backup ditolak: Ukuran maksimal 10 MB!', 'err');
+    if (evt.target) evt.target.value = '';
+    return;
+  }
+
   const reader = new FileReader();
   reader.onload = e => {
     try {
-      const parsed = JSON.parse(e.target.result);
+      // 2. Prototype Pollution Prevention & JSON Sanitize (File upload di-scan)
+      const parsed = JSON.parse(e.target.result, (key, value) => {
+        if (key === '__proto__' || key === 'constructor' || key === 'prototype') return undefined;
+        return value;
+      });
+      if (!parsed || typeof parsed !== 'object') throw 0;
       if (!parsed.guru && !parsed.siswa && !parsed.absensi) throw 0;
+
       db = parsed;
       db.mapel   = db.mapel   || [];
       db.siswa   = db.siswa   || {};
       db.absensi = db.absensi || [];
+      db.adminPinHash = db.adminPinHash || (typeof DEFAULT_ADMIN_PIN_HASH !== 'undefined' ? DEFAULT_ADMIN_PIN_HASH : '30cdc6c9b0a19ff36d0f66103a995876247b5c102087199051c13defe792ba15');
+      delete db.adminPin; // Remove plain text
       saveDB();
       refreshSidebarProfile();
       showToast('Data berhasil dipulihkan ✅','ok');
-    } catch(_) { showToast('File tidak valid.','err'); }
+    } catch(_) { showToast('File backup rusak atau tidak sah.','err'); }
   };
   reader.readAsText(file);
   evt.target.value = '';
@@ -5807,29 +5848,66 @@ function retakeFaceEnroll() {
 function uploadFaceFile(event) {
   const file = event.target.files[0];
   if (!file) return;
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    const img = new Image();
-    img.onload = () => {
-      const canvas = document.getElementById('enf-canvas');
-      canvas.width = 160;
-      canvas.height = 190;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(img, 0, 0, 160, 190);
-      enrolledBase64 = canvas.toDataURL('image/jpeg', 0.9);
 
-      document.getElementById('enf-img-preview').src = enrolledBase64;
-      document.getElementById('enf-video-box').style.display = 'none';
-      document.getElementById('enf-preview-wrap').style.display = 'flex';
+  // 1. File size limit: max 5 MB (Upload file dibatasi)
+  if (file.size > 5 * 1024 * 1024) {
+    showToast('Ukuran foto terlalu besar! Maksimal 5 MB.', 'err');
+    if (event.target) event.target.value = '';
+    return;
+  }
 
-      document.getElementById('btn-enf-capture').style.display = 'none';
-      document.getElementById('btn-enf-retake').style.display = 'inline-block';
-      document.getElementById('btn-enf-save').style.display = 'inline-block';
-      stopEnrollCamera();
+  // 2. MIME type whitelist
+  const allowedMimes = ['image/jpeg', 'image/png', 'image/webp'];
+  if (!allowedMimes.includes(file.type)) {
+    showToast('Format file ditolak! Gunakan JPG, PNG, atau WEBP.', 'err');
+    if (event.target) event.target.value = '';
+    return;
+  }
+
+  // 3. Scan binary header / magic number (File upload di-scan)
+  const headerReader = new FileReader();
+  headerReader.onload = (hdrEvent) => {
+    const arr = new Uint8Array(hdrEvent.target.result).subarray(0, 4);
+    let headerHex = '';
+    for (let i = 0; i < arr.length; i++) {
+      headerHex += arr[i].toString(16).padStart(2, '0');
+    }
+
+    const isJpeg = headerHex.startsWith('ffd8ff');
+    const isPng = headerHex === '89504e47';
+    const isRiff = headerHex.startsWith('52494646'); // 'RIFF' header for WebP
+
+    if (!isJpeg && !isPng && !isRiff) {
+      showToast('Keamanan: Header file bukan citra foto asli yang sah!', 'err');
+      if (event.target) event.target.value = '';
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.getElementById('enf-canvas');
+        canvas.width = 160;
+        canvas.height = 190;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, 160, 190);
+        enrolledBase64 = canvas.toDataURL('image/jpeg', 0.9);
+
+        document.getElementById('enf-img-preview').src = enrolledBase64;
+        document.getElementById('enf-video-box').style.display = 'none';
+        document.getElementById('enf-preview-wrap').style.display = 'flex';
+
+        document.getElementById('btn-enf-capture').style.display = 'none';
+        document.getElementById('btn-enf-retake').style.display = 'inline-block';
+        document.getElementById('btn-enf-save').style.display = 'inline-block';
+        stopEnrollCamera();
+      };
+      img.src = e.target.result;
     };
-    img.src = e.target.result;
+    reader.readAsDataURL(file);
   };
-  reader.readAsDataURL(file);
+  headerReader.readAsArrayBuffer(file.slice(0, 4));
 }
 
 function saveFaceEnroll() {

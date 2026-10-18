@@ -10,5 +10,16 @@ style.css.bak
 .DS_Store
 Thumbs.db
 desktop.ini
+# Secrets & Environment Variables (Security Checklist)
+.env
+.env.*
+*.env
+*.key
+*.pem
+*.secret
+*.token
+credentials.json
+auth_tokens.json
+
 # Playwright CLI output (may contain credentials)
 .playwright-cli/

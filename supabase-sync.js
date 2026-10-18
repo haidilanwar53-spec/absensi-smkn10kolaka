@@ -18,6 +18,15 @@
   let isSyncing = false;
   let realtimeChannel = null;
 
+  // Security Checklist: Debug mode off & Error detail jangan bocor
+  const IS_DEBUG_MODE = false;
+  function safeLog(...args) {
+    if (IS_DEBUG_MODE) console.log(...args);
+  }
+  function safeWarn(...args) {
+    if (IS_DEBUG_MODE) console.warn(...args);
+  }
+
   function initClient() {
     try {
       if (typeof window.supabase !== 'undefined' && window.supabase.createClient) {
@@ -25,10 +34,10 @@
           auth: { persistSession: false }
         });
       } else {
-        console.warn('[Supabase] Library supabase-js belum siap.');
+        safeWarn('[Supabase] Library supabase-js belum siap.');
       }
-    } catch (err) {
-      console.error('[Supabase] Init error:', err);
+    } catch (_) {
+      safeWarn('[Supabase] Init failed.');
     }
   }
 
@@ -104,12 +113,12 @@
 
       const { error } = await client.from('absensi_siswa').upsert(payload);
       if (error) {
-        console.warn('[Supabase] Gagal upload sesi absensi:', error.message);
+        safeWarn('[Supabase] Gagal upload sesi absensi:', error.message);
       } else {
-        console.log(`[Supabase] ✅ Sesi ${recordId} tersinkron ke cloud.`);
+        safeLog(`[Supabase] ✅ Sesi ${recordId} tersinkron ke cloud.`);
       }
     } catch (err) {
-      console.warn('[Supabase] Upload session error:', err);
+      safeWarn('[Supabase] Upload session error:', err);
     }
   }
 
@@ -184,7 +193,7 @@
 
       return data.length;
     } catch (err) {
-      console.warn('[Supabase] Gagal download sesi absensi:', err.message);
+      safeWarn('[Supabase] Gagal download sesi absensi:', err.message);
       return 0;
     }
   }
@@ -207,10 +216,10 @@
       };
 
       const { error } = await client.from('presensi_guru').upsert(payload);
-      if (error) console.warn('[Supabase] Gagal upload presensi guru:', error.message);
-      else console.log(`[Supabase] ✅ Presensi guru ${record.nama} tersinkron.`);
+      if (error) safeWarn('[Supabase] Gagal upload presensi guru:', error.message);
+      else safeLog(`[Supabase] ✅ Presensi guru ${record.nama} tersinkron.`);
     } catch (err) {
-      console.warn('[Supabase] Upload teacher error:', err);
+      safeWarn('[Supabase] Upload teacher error:', err);
     }
   }
 
@@ -267,7 +276,7 @@
 
       return data.length;
     } catch (err) {
-      console.warn('[Supabase] Gagal download presensi guru:', err.message);
+      safeWarn('[Supabase] Gagal download presensi guru:', err.message);
       return 0;
     }
   }
@@ -286,10 +295,10 @@
         updated_at: new Date().toISOString()
       };
       const { error } = await client.from('biometrik_wajah').upsert(payload);
-      if (error) console.warn('[Supabase] Gagal upload wajah biometrik:', error.message);
-      else console.log(`[Supabase] ✅ Data wajah ${nama} tersinkron ke cloud.`);
+      if (error) safeWarn('[Supabase] Gagal upload wajah biometrik:', error.message);
+      else safeLog(`[Supabase] ✅ Data wajah ${nama} tersinkron ke cloud.`);
     } catch (err) {
-      console.warn('[Supabase] Upload face error:', err);
+      safeWarn('[Supabase] Upload face error:', err);
     }
   }
 
@@ -323,7 +332,7 @@
 
       return data.length;
     } catch (err) {
-      console.warn('[Supabase] Gagal download biometrik wajah:', err.message);
+      safeWarn('[Supabase] Gagal download biometrik wajah:', err.message);
       return 0;
     }
   }
@@ -341,11 +350,11 @@
 
       isOnline = true;
       updateBadgeUI('connected', `Cloud: ${sessionCount} Sesi Sync`);
-      console.log(`[Supabase] ✅ Sinkronisasi selesai: ${sessionCount} sesi siswa, ${teacherCount} presensi guru.`);
+      safeLog(`[Supabase] ✅ Sinkronisasi selesai: ${sessionCount} sesi siswa, ${teacherCount} presensi guru.`);
     } catch (err) {
       isOnline = false;
       updateBadgeUI('error');
-      console.error('[Supabase] Sync error:', err);
+      safeWarn('[Supabase] Sync error:', err);
     } finally {
       isSyncing = false;
     }
@@ -362,23 +371,23 @@
       realtimeChannel = client
         .channel('school-attendance-changes')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'absensi_siswa' }, payload => {
-          console.log('[Supabase Realtime] Perubahan absensi siswa diterima:', payload);
+          safeLog('[Supabase Realtime] Perubahan absensi siswa diterima:', payload);
           downloadAndMergeSessions();
           if (typeof window.showToast === 'function') {
             window.showToast('☁️ Data absensi kelas baru saja diperbarui di Cloud.', 'ok');
           }
         })
         .on('postgres_changes', { event: '*', schema: 'public', table: 'presensi_guru' }, payload => {
-          console.log('[Supabase Realtime] Perubahan presensi guru diterima:', payload);
+          safeLog('[Supabase Realtime] Perubahan presensi guru diterima:', payload);
           downloadAndMergeTeacherPresence();
         })
         .subscribe(status => {
           if (status === 'SUBSCRIBED') {
-            console.log('[Supabase Realtime] 🟢 Realtime sync aktif.');
+            safeLog('[Supabase Realtime] 🟢 Realtime sync aktif.');
           }
         });
     } catch (err) {
-      console.warn('[Supabase Realtime] Error setup:', err);
+      safeWarn('[Supabase Realtime] Error setup:', err);
     }
   }
 
