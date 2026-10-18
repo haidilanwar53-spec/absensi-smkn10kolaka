@@ -3,7 +3,11 @@
 
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#062419" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="format-detection" content="telephone=no" />
   <meta http-equiv="X-Content-Type-Options" content="nosniff" />
   <meta name="referrer" content="strict-origin-when-cross-origin" />
   <title>Absensi Guru &amp; Siswa Digital – SMK Negeri 10 Kolaka</title>
@@ -130,6 +134,9 @@
       <div class="sidebar-ta" id="sidebar-ta"></div>
     </aside>
 
+    <!-- Mobile Sidebar Backdrop Overlay -->
+    <div class="sidebar-backdrop" id="sidebar-backdrop" onclick="toggleSidebar(false)"></div>
+
     <!-- WRAPPER KANAN -->
     <div class="right-panel">
 
@@ -143,32 +150,37 @@
           <!-- Topbar Theme Switcher -->
           <button class="btn-liquid-topbar btn-theme-toggle" id="btn-topbar-theme" onclick="toggleTheme()" title="Ubah Tema Gelap / Terang">
             <span class="btn-liquid-icon" id="topbar-theme-icon">🌙</span>
-            <span id="topbar-theme-text">Gelap</span>
+            <span class="topbar-btn-text" id="topbar-theme-text">Gelap</span>
           </button>
           <!-- Topbar Bell Toggle & Status -->
           <button class="btn-liquid-topbar btn-liquid-bell" id="btn-topbar-bell" onclick="SchoolBell.toggleModal()" title="Bel Sekolah & Pengumuman Suara Otomatis">
             <span class="btn-liquid-icon" id="topbar-bell-icon">🔔</span>
-            <span id="topbar-bell-text">Bel Aktif</span>
+            <span class="topbar-btn-text" id="topbar-bell-text">Bel Aktif</span>
             <span class="bell-pulse-dot active" id="topbar-bell-dot"></span>
           </button>
           <!-- Topbar Cloud Supabase Status -->
           <button class="btn-liquid-topbar btn-liquid-cloud" id="cloud-sync-badge" onclick="window.SupabaseSync.manualSync()" title="Sinkronisasi Cloud Supabase (Klik untuk sync manual)">
             <span class="btn-liquid-icon">☁️</span>
-            <span id="cloud-sync-text">Cloud Sync</span>
+            <span class="topbar-btn-text" id="cloud-sync-text">Cloud Sync</span>
             <span class="cloud-pulse-dot" id="cloud-sync-dot"></span>
+          </button>
+          <!-- Topbar Smart TV Kiosk Mode Toggle -->
+          <button class="btn-liquid-topbar btn-liquid-tv" id="btn-topbar-tv" onclick="toggleTVKioskMode()" title="Mode Tampilan Smart TV / Layar Penuh (1080p / 4K)">
+            <span class="btn-liquid-icon">📺</span>
+            <span class="topbar-btn-text" id="topbar-tv-text">Mode TV</span>
           </button>
           <button class="btn-liquid-topbar" onclick="openTeacherSwitchModal()" title="Masuk atau berganti akun guru (24 Guru)">
             <span class="btn-liquid-icon">👤</span>
-            <span id="topbar-teacher-btn-name">Ganti Akun Guru</span>
+            <span class="topbar-btn-text" id="topbar-teacher-btn-name">Ganti Akun</span>
             <span class="liquid-dots">• • •</span>
           </button>
           <button class="btn-liquid-topbar btn-liquid-logout" id="btn-topbar-logout" onclick="logoutGuru(event)" title="Keluar / Logout Akun Guru" style="display:none">
             <span class="btn-liquid-icon">🚪</span>
-            <span>Logout</span>
+            <span class="topbar-btn-text">Logout</span>
           </button>
           <button class="btn-liquid-topbar" id="btn-topbar-refresh" onclick="refreshCurrentPage()" title="Segarkan Data Halaman Ini">
             <span class="btn-liquid-icon">🔄</span>
-            <span>Segarkan</span>
+            <span class="topbar-btn-text">Segarkan</span>
           </button>
         </div>
         <div class="topbar-date" id="topbar-date"></div>
