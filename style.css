@@ -3712,24 +3712,11 @@ body.sidebar-mini .nav-btn:hover::after {
   .center-fab-dock { display: none !important; }
 }
 
-@media (max-width: 720px) {
-  .center-fab-dock {
-    bottom: 14px;
-  }
-  .fab-pill-tray {
-    padding: 5px 8px;
-    gap: 4px;
-  }
-  .fab-tray-btn {
-    padding: 6px 10px;
-    font-size: 11.5px;
-  }
-  .fab-core-btn {
-    padding: 7px 14px;
-    font-size: 12px;
-  }
-  .fab-menu-grid {
-    grid-template-columns: repeat(3, 1fr);
+/* Sembunyikan Menu Aksi Cepat (Floating Action Dock & Popover) di Layar Smartphone (<= 768px) */
+@media (max-width: 768px) {
+  .center-fab-dock,
+  .center-fab-menu {
+    display: none !important;
   }
 }
 
@@ -5071,21 +5058,7 @@ body.dark-mode .btn-bell-action.action-danger {
   pointer-events: none;
 }
 
-/* ── B. Mode TV Button Styling ── */
-.btn-liquid-tv {
-  border-color: rgba(168, 85, 247, 0.4) !important;
-  color: #7c3aed !important;
-  background: rgba(168, 85, 247, 0.08) !important;
-}
-[data-theme="dark"] .btn-liquid-tv {
-  color: #c084fc !important;
-  background: rgba(168, 85, 247, 0.15) !important;
-}
-.btn-liquid-tv:hover, .btn-liquid-tv.active {
-  background: rgba(168, 85, 247, 0.22) !important;
-  border-color: #7c3aed !important;
-  transform: translateY(-1px);
-}
+
 
 /* ── C. TABLET & MEDIUM SCREENS (max-width: 1024px) ── */
 @media (max-width: 1024px) {
@@ -5296,10 +5269,10 @@ body.dark-mode .btn-bell-action.action-danger {
     font-size: 13.5px;
   }
 
-  /* Floating Action Dock on Mobile */
-  .center-fab-dock {
-    bottom: 12px !important;
-    transform: scale(0.92);
+  /* Sembunyikan Menu Aksi Cepat (Floating Action Dock) di Smartphone */
+  .center-fab-dock,
+  .center-fab-menu {
+    display: none !important;
   }
 }
 

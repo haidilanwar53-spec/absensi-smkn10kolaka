@@ -231,7 +231,10 @@ document.addEventListener('click', (e) => {
 window.addEventListener('DOMContentLoaded', () => {
   initTheme();
   initSidebarMinimize();
-  initTVKioskMode();
+  try {
+    localStorage.removeItem('smkn10_tv_mode');
+    document.documentElement.classList.remove('tv-kiosk-mode');
+  } catch(_) {}
   loadCustomSKData();
   loadDB();
   renderDate();
@@ -1844,39 +1847,16 @@ function toggleSidebar(forceState) {
 
 function initTVKioskMode() {
   try {
-    const isTV = localStorage.getItem('smkn10_tv_mode') === 'true';
-    if (isTV) {
-      document.documentElement.classList.add('tv-kiosk-mode');
-      const btn = document.getElementById('btn-topbar-tv');
-      const txt = document.getElementById('topbar-tv-text');
-      if (btn) btn.classList.add('active');
-      if (txt) txt.textContent = 'Keluar TV';
-    }
+    localStorage.removeItem('smkn10_tv_mode');
+    document.documentElement.classList.remove('tv-kiosk-mode');
   } catch(_) {}
 }
 
 function toggleTVKioskMode() {
-  const isTV = document.documentElement.classList.toggle('tv-kiosk-mode');
   try {
-    localStorage.setItem('smkn10_tv_mode', isTV ? 'true' : 'false');
+    localStorage.removeItem('smkn10_tv_mode');
+    document.documentElement.classList.remove('tv-kiosk-mode');
   } catch(_) {}
-  
-  const btn = document.getElementById('btn-topbar-tv');
-  const txt = document.getElementById('topbar-tv-text');
-  if (btn) btn.classList.toggle('active', isTV);
-  if (txt) txt.textContent = isTV ? 'Keluar TV' : 'Mode TV';
-
-  if (isTV) {
-    if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
-      document.documentElement.requestFullscreen().catch(() => {});
-    }
-    showToast('📺 Mode Smart TV / Layar Penuh Diaktifkan!', 'ok');
-  } else {
-    if (document.fullscreenElement && document.exitFullscreen) {
-      document.exitFullscreen().catch(() => {});
-    }
-    showToast('Keluar dari Mode TV.', 'info');
-  }
 }
 
 // ─────────────────────────────────────────────
