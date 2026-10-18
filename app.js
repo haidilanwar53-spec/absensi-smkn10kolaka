@@ -263,16 +263,108 @@ window.addEventListener('DOMContentLoaded', () => {
 });
 
 const DEFAULT_STUDENTS_BY_CLASS = {
-  "TJKT-X": ["Aditya Pratama Kolaka", "Annisa Fitriani", "Bambang Irawan", "Dian Permatasari", "Eko Wahyudi", "Fadhil Ramadhan", "Gita Maharani", "Hafiz Al-Farizi"],
-  "TJKT-XI": ["Ilham Syahputra", "Jessica Aurelia", "Kevin Prasetya", "Lia Lestari", "Muhammad Rizky", "Nadya Utami", "Rendy Ardiansyah", "Safira Maharani"],
-  "TJKT-XII": ["Muh. Ridwan Saputra", "Nadia Salsabila", "Okta Maulana", "Putri Handayani", "Reza Rahardian", "Siti Nurhaliza", "Teguh Prakoso", "Vina Melati"],
-  "MPLB-X": ["Rahmat Hidayatullah", "Salsabila Putri Kolaka", "Taufik Qurrahman", "Ulfah Maghfirah", "Vina Panduwinata", "Wahyu Nugroho", "Yuli Anggraini", "Zulfikar Ahmad"],
-  "MPLB-XI": ["Zahra Ainun Nisa", "Aldi Taher Saputra", "Bella Shofia", "Citra Kirana", "Dika Mahendra", "Elsa Safitri", "Fajar Nugraha", "Gita Paramita"],
-  "MPLB-XII": ["Dimas Anggara", "Endah Retnowati", "Fajar Siddiq", "Gina Sonia", "Hendra Lesmana", "Indah Permata", "Joko Santoso", "Kartika Dewi"],
-  "GP-X": ["Andi Baso Pomalaa", "Ayu Kartika Tambang", "Bayu Segara", "Chandra Wibowo", "Dedi Kusnandar", "Elsa Novitasari", "Farhan Tambang", "Gani Prakasa"],
-  "GP-XI": ["Firman Utina Geologi", "Gita Gutawa Mining", "Heri Susanto", "Intan Permata Nikel", "Jafar Sodiq", "Kurnia Tambang", "Lukman Hakim", "Maya Anggrek"],
-  "GP-XII": ["Joko Widodo Pomalaa", "Kurnia Meiga", "Lestari Indah Wati", "M. Syahrul Gunawan", "Noval Geologi", "Putri Lestari", "Raditya Tambang", "Surya Kencana"]
+  "TJKT-X": [
+    "Aisyah Rani", "Al-Jabar Rifky Saputra", "Almaira Salsabila", "Almansyah", "Angelica Safitri",
+    "Dandi Pratama", "Dika Hardika", "Fadil Afandi Fanya", "Fathir Anugrah", "HANS IZAT",
+    "Husnul Khatimah", "IRWAN", "Khaerul Azam", "Muhammad Fadlan Amir", "Muhammad Ikbal",
+    "Muhammad Rifal", "Piki Aulia Ramadhan", "Rajab Pratama", "Randi Arionto", "Taufik Hidayat",
+    "Taufik Topan"
+  ],
+  "TJKT-XI": [
+    "ADE KURNIAWAN", "AHMAD JUMAIDIL RAMADHAN", "Arfandi Saputra", "Asrianti", "Dian Indah Pratiwi",
+    "Ikhfan Nurkhalis", "JASMIN", "MUH. ALI", "MUH. SATRIO AKSAN MAULANA", "MUHAMMAD FAJAR",
+    "NANDA ALTA FUNISA", "OKTAVIONA SAMPE BADO", "Patir Tumakaka", "Rastika Mulyani", "SEFTIANI",
+    "SULKIFLI", "Viqha", "Viqhi", "ZULFADLI", "ZULFIKAR"
+  ],
+  "TJKT-XII": [
+    "Adityansah", "Delsa Nur Imani", "Fira. P", "Fitra Ramadhan", "Haerul Rahman",
+    "Isnatul Arifa", "Karim Melati", "M. Yusuf", "Nur Atifah", "Nur Syahira",
+    "Nur Syalfarina", "Nurhalisa", "Nurul", "Rustang", "Satria",
+    "Sitti Mahsyura", "Steven Toratu", "Taufik Hidayat", "Wahyu Saputra"
+  ],
+  "MPLB-X": [
+    "Abu Bakar", "Adelia Saputri", "Ahmad Mufli Hasan", "Aisya Rani", "Akbar Anggara",
+    "Alif", "Alvina Melinda", "Ana Ratna Sari", "Anugrah", "Hafsari Ramadhana",
+    "Intan Nurfadina", "Jean Arsyafatul Khanza", "Miftahul Khair", "Muh. Alif Rahman", "Muh. Fajri Ardiansyah",
+    "Muh. Ikbal", "Muh. Iktiar Kurniawan", "Muh. Jabal Nur", "Nanda Hayani", "Nur Saskia Ramadhani",
+    "Nurul Khadija", "Putra Ariya Anugrah", "Rifqi Ramadahan", "Rini", "Sri Nuraini",
+    "Sukardi", "Sulaiman", "Sulstia Widya Ningsi", "Syarini"
+  ],
+  "MPLB-XI": [
+    "Aidil Fitra", "Angga Aksan Saputra", "Daniel", "Dira Aszahra", "Eni Lestari",
+    "Fadil", "Jumaidil", "Muhammad Ikbal", "Muhammad Isran", "Muhammad Reski",
+    "Rahmi", "Nirmala", "Nur Fadillah Mansur", "Radit Ramadan", "Rizka",
+    "Saldi Adinata", "Sultan Alkaisar", "Lutfiana Ulfa Syahrir", "Nur Sintia"
+  ],
+  "MPLB-XII": [
+    "Anaul Husna", "Asisa Ayu Lestari", "Hasnia", "Masna", "Masni",
+    "Nadia Nurfadilla", "Nirmala Sari", "Nur Alam", "Nurul Wahdina", "Nurul Wahdini",
+    "Salsabila", "ST. Humaera", "Tri Natasiya"
+  ],
+  "GP-X": [
+    "Andi Baso Pomalaa", "Ayu Kartika Tambang", "Bayu Segara", "Chandra Wibowo",
+    "Dedi Kusnandar", "Elsa Novitasari", "Farhan Tambang", "Gani Prakasa"
+  ],
+  "GP-XI": [
+    "Alwi", "Bambang", "Claudia Melui Randa.L", "Desti", "Dila",
+    "Dimas", "Dynda Maulia", "Fadlan", "Fajri", "Fauzan",
+    "Icha Asriani", "Muhammad Meyrizaldi", "Mutmainna", "Nabila Salsabila", "Rifal",
+    "Sulaeman", "Yosua Victoryaxdo.A"
+  ],
+  "GP-XII": [
+    "Adrian", "Andi Ramadansya", "Arsyandi Saputra", "Bakkareng", "Ikbal",
+    "Juanda", "M. Alyusri", "Mawar Apriliani", "Muh. Akhyar", "Muh. Ashar",
+    "Muh. Fajri", "Muh. Hafis", "Ridwan", "Rosalina"
+  ]
 };
+
+const DEFAULT_ABSENSI_DATA = [
+  {
+    "id": 1792207827812,
+    "mapelId": 2033,
+    "mapelNama": "Informatika",
+    "jurusan": "MPLB",
+    "tingkat": "X",
+    "tanggal": "2026-10-17",
+    "pertemuan": 1,
+    "jamMasuk": "10:00",
+    "jamKeluar": "11:30",
+    "namaGuru": "HAIDIL ANWAR, S.Kom",
+    "nipGuru": "NIPPK. 1993••••••••28",
+    "ta": "2026/2027",
+    "records": [
+      { "nama": "Abu Bakar", "status": "S", "jamMasuk": "", "jamKeluar": "", "ket": "", "foto": null },
+      { "nama": "Adelia Saputri", "status": "H", "jamMasuk": "10:00", "jamKeluar": "11:30", "ket": "", "foto": null },
+      { "nama": "Ahmad Mufli Hasan", "status": "H", "jamMasuk": "10:00", "jamKeluar": "11:30", "ket": "", "foto": null },
+      { "nama": "Aisya Rani", "status": "H", "jamMasuk": "10:00", "jamKeluar": "11:30", "ket": "", "foto": null },
+      { "nama": "Akbar Anggara", "status": "H", "jamMasuk": "10:00", "jamKeluar": "11:30", "ket": "", "foto": null },
+      { "nama": "Alif", "status": "H", "jamMasuk": "10:00", "jamKeluar": "11:30", "ket": "", "foto": null },
+      { "nama": "Alvina Melinda", "status": "I", "jamMasuk": "", "jamKeluar": "", "ket": "", "foto": null },
+      { "nama": "Ana Ratna Sari", "status": "H", "jamMasuk": "10:00", "jamKeluar": "11:30", "ket": "", "foto": null },
+      { "nama": "Anugrah", "status": "H", "jamMasuk": "10:00", "jamKeluar": "11:30", "ket": "", "foto": null },
+      { "nama": "Hafsari Ramadhana", "status": "H", "jamMasuk": "10:00", "jamKeluar": "11:30", "ket": "", "foto": null },
+      { "nama": "Intan Nurfadina", "status": "H", "jamMasuk": "10:00", "jamKeluar": "11:30", "ket": "", "foto": null },
+      { "nama": "Jean Arsyafatul Khanza", "status": "I", "jamMasuk": "", "jamKeluar": "", "ket": "", "foto": null },
+      { "nama": "Miftahul Khair", "status": "H", "jamMasuk": "10:00", "jamKeluar": "11:30", "ket": "", "foto": null },
+      { "nama": "Muh. Alif Rahman", "status": "H", "jamMasuk": "10:00", "jamKeluar": "11:30", "ket": "", "foto": null },
+      { "nama": "Muh. Fajri Ardiansyah", "status": "H", "jamMasuk": "10:00", "jamKeluar": "11:30", "ket": "", "foto": null },
+      { "nama": "Muh. Ikbal", "status": "H", "jamMasuk": "10:00", "jamKeluar": "11:30", "ket": "", "foto": null },
+      { "nama": "Muh. Iktiar Kurniawan", "status": "H", "jamMasuk": "10:00", "jamKeluar": "11:30", "ket": "", "foto": null },
+      { "nama": "Muh. Jabal Nur", "status": "H", "jamMasuk": "10:00", "jamKeluar": "11:30", "ket": "", "foto": null },
+      { "nama": "Nanda Hayani", "status": "H", "jamMasuk": "10:00", "jamKeluar": "11:30", "ket": "", "foto": null },
+      { "nama": "Nur Saskia Ramadhani", "status": "H", "jamMasuk": "10:00", "jamKeluar": "11:30", "ket": "", "foto": null },
+      { "nama": "Nurul Khadija", "status": "H", "jamMasuk": "10:00", "jamKeluar": "11:30", "ket": "", "foto": null },
+      { "nama": "Putra Ariya Anugrah", "status": "H", "jamMasuk": "10:00", "jamKeluar": "11:30", "ket": "", "foto": null },
+      { "nama": "Rifqi Ramadahan", "status": "H", "jamMasuk": "10:00", "jamKeluar": "11:30", "ket": "", "foto": null },
+      { "nama": "Rini", "status": "S", "jamMasuk": "", "jamKeluar": "", "ket": "", "foto": null },
+      { "nama": "Sri Nuraini", "status": "H", "jamMasuk": "10:00", "jamKeluar": "11:30", "ket": "", "foto": null },
+      { "nama": "Sukardi", "status": "S", "jamMasuk": "", "jamKeluar": "", "ket": "", "foto": null },
+      { "nama": "Sulaiman", "status": "H", "jamMasuk": "10:00", "jamKeluar": "11:30", "ket": "", "foto": null },
+      { "nama": "Sulstia Widya Ningsi", "status": "S", "jamMasuk": "", "jamKeluar": "", "ket": "", "foto": null },
+      { "nama": "Syarini", "status": "H", "jamMasuk": "10:00", "jamKeluar": "11:30", "ket": "", "foto": null }
+    ]
+  }
+];
 
 function repairAndSyncHaidilMapel() {
   if (!db.mapel || !Array.isArray(db.mapel)) db.mapel = [];
@@ -575,10 +667,31 @@ function loadDB() {
     if (sanitized) saveDB();
   }
 
-  // Seed default students ONLY if not initialized before
-  if (!db._studentsInitialized && (!db.siswa || Object.keys(db.siswa).length === 0)) {
+  // Sinkronisasi otomatis data siswa riil dari SK SMKN 10 Kolaka
+  const hasDummyStudents = db.siswa && (
+    (db.siswa["TJKT-X"] && db.siswa["TJKT-X"].includes("Aditya Pratama Kolaka")) ||
+    (db.siswa["TJKT-XI"] && db.siswa["TJKT-XI"].includes("Ilham Syahputra")) ||
+    (db.siswa["MPLB-X"] && db.siswa["MPLB-X"].includes("Rahmat Hidayatullah"))
+  );
+  if (!db._studentsInitialized || !db.siswa || Object.keys(db.siswa).length === 0 || hasDummyStudents) {
     db.siswa = JSON.parse(JSON.stringify(DEFAULT_STUDENTS_BY_CLASS));
     db._studentsInitialized = true;
+    saveDB();
+  } else {
+    // Pastikan seluruh 9 rombel kelas memiliki daftar siswa lengkap
+    let updatedSiswa = false;
+    Object.keys(DEFAULT_STUDENTS_BY_CLASS).forEach(clsKey => {
+      if (!db.siswa[clsKey] || db.siswa[clsKey].length === 0) {
+        db.siswa[clsKey] = [...DEFAULT_STUDENTS_BY_CLASS[clsKey]];
+        updatedSiswa = true;
+      }
+    });
+    if (updatedSiswa) saveDB();
+  }
+
+  // Inisialisasi sesi absensi riil jika belum ada
+  if (!Array.isArray(db.absensi) || db.absensi.length === 0) {
+    db.absensi = JSON.parse(JSON.stringify(DEFAULT_ABSENSI_DATA));
     saveDB();
   }
 
