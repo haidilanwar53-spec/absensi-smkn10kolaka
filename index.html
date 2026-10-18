@@ -35,7 +35,10 @@
   </script>
   <link rel="icon" type="image/png" href="img/favicon.png?v=20261015_11" />
   <link rel="apple-touch-icon" href="img/logo_smkn10.png?v=20261015_11" />
-  <link rel="stylesheet" href="style.css?v=20261016_10" />
+  <link rel="manifest" href="manifest.json" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="application-name" content="Absensi SMKN 10" />
+  <link rel="stylesheet" href="style.css?v=20261018_01" />
   <script>
     (function() {
       try {
@@ -2163,6 +2166,17 @@
   <script src="bell.js?v=20261017_01"></script>
   <script src="supabase-sync.js?v=20261017_01"></script>
   <script src="app.js?v=20261017_02"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js').then((reg) => {
+          console.log('ServiceWorker registered with scope:', reg.scope);
+        }).catch((err) => {
+          console.log('ServiceWorker registration skipped:', err);
+        });
+      });
+    }
+  </script>
 </body>
 
 </html>

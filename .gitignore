@@ -23,3 +23,9 @@ auth_tokens.json
 
 # Playwright CLI output (may contain credentials)
 .playwright-cli/
+
+# Build & Android artifacts
+node_modules/
+www/
+android/
+build-output/

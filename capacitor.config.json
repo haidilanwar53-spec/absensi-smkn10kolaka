@@ -1,0 +1,14 @@
+{
+  "appId": "id.sch.smkn10kolaka.absensi",
+  "appName": "Absensi SMKN 10 Kolaka",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "https",
+    "cleartext": true
+  },
+  "android": {
+    "allowMixedContent": true,
+    "captureInput": true,
+    "webContentsDebuggingEnabled": false
+  }
+}

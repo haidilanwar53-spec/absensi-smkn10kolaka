@@ -1,0 +1,17 @@
+{
+  "name": "absensi-smkn10kolaka",
+  "version": "1.0.0",
+  "description": "Sistem Informasi Absensi & Jurnal Digital SMKN 10 Kolaka",
+  "main": "index.html",
+  "scripts": {
+    "prepare-www": "node prepare-www.js",
+    "cap:add": "node prepare-www.js && cap add android",
+    "cap:sync": "node prepare-www.js && cap sync android",
+    "build:apk": "node prepare-www.js && cap sync android && cd android && ./gradlew assembleDebug"
+  },
+  "dependencies": {
+    "@capacitor/android": "^6.2.0",
+    "@capacitor/cli": "^6.2.0",
+    "@capacitor/core": "^6.2.0"
+  }
+}
