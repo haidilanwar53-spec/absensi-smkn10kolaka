@@ -28,7 +28,6 @@ const filesToCopy = [
   'app.js',
   'sk_data.js',
   'bell.js',
-  'supabase-sync.js',
   'manifest.json',
   'sw.js'
 ];

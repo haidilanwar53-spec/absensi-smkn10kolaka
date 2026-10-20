@@ -1,5 +1,5 @@
 // Service Worker for Absensi SMKN 10 Kolaka
-const CACHE_NAME = 'smkn10-cache-v1';
+const CACHE_NAME = 'smkn10-cache-v2';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -7,12 +7,10 @@ const ASSETS_TO_CACHE = [
   './app.js',
   './sk_data.js',
   './bell.js',
-  './supabase-sync.js',
   './manifest.json',
   './img/favicon.png',
   './img/logo_smkn10.png',
-  './img/logo_smk_bisa.png',
-  './vendor/supabase.min.js'
+  './img/logo_smk_bisa.png'
 ];
 
 self.addEventListener('install', (event) => {

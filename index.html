@@ -10,7 +10,7 @@
   <meta name="format-detection" content="telephone=no" />
   <meta http-equiv="X-Content-Type-Options" content="nosniff" />
   <meta name="referrer" content="strict-origin-when-cross-origin" />
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https://*.supabase.co https://*.github.io; connect-src 'self' https://*.supabase.co wss://*.supabase.co http://localhost:8080 http://127.0.0.1:8080 http://192.168.*:8080; media-src 'self' blob: data:; object-src 'none'; base-uri 'self';" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https://*.github.io; connect-src 'self' http://localhost:8080 http://127.0.0.1:8080 http://192.168.*:8080; media-src 'self' blob: data:; object-src 'none'; base-uri 'self';" />
   <title>Absensi Guru &amp; Siswa Digital – SMK Negeri 10 Kolaka</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -161,12 +161,6 @@
             <span class="btn-liquid-icon" id="topbar-bell-icon">🔔</span>
             <span class="topbar-btn-text" id="topbar-bell-text">Bel Aktif</span>
             <span class="bell-pulse-dot active" id="topbar-bell-dot"></span>
-          </button>
-          <!-- Topbar Cloud Supabase Status -->
-          <button class="btn-liquid-topbar btn-liquid-cloud" id="cloud-sync-badge" onclick="window.SupabaseSync.manualSync()" title="Sinkronisasi Cloud Supabase (Klik untuk sync manual)">
-            <span class="btn-liquid-icon">☁️</span>
-            <span class="topbar-btn-text" id="cloud-sync-text">Cloud Sync</span>
-            <span class="cloud-pulse-dot" id="cloud-sync-dot"></span>
           </button>
           <button class="btn-liquid-topbar" onclick="openTeacherSwitchModal()" title="Masuk atau berganti akun guru (24 Guru)">
             <span class="btn-liquid-icon">👤</span>
@@ -2156,16 +2150,9 @@
   </div>
 
   <audio id="audio-indonesia-raya" src="audio/indonesia_raya.ogg" preload="auto"></audio>
-  <script src="vendor/supabase.min.js"></script>
-  <script>
-    if (typeof window.supabase === 'undefined') {
-      document.write('<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"><\/script>');
-    }
-  </script>
   <script src="sk_data.js?v=20261015_11"></script>
   <script src="bell.js?v=20261017_01"></script>
-  <script src="supabase-sync.js?v=20261017_01"></script>
-  <script src="app.js?v=20261017_02"></script>
+  <script src="app.js?v=20261020_01"></script>
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
