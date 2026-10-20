@@ -188,10 +188,10 @@ h1, h2, h3, h4, .page-heading, .kpi-num, .card-inst-name, .setup-banner h2 {
 }
 
 /* ──────────────────────────────────────────────
-   4. SIDEBAR (FOREST OBSIDIAN & FROSTED GLASS)
+   4. SIDEBAR (ANDROID NAVIGATION RAIL - COMPACT & EXPANSIVE)
 ────────────────────────────────────────────── */
 .sidebar {
-  width: 250px;
+  width: 82px;
   min-height: 100vh;
   background: linear-gradient(180deg, #051810 0%, #0a2519 55%, #0e3021 100%);
   color: #f1f8f4;
@@ -200,32 +200,35 @@ h1, h2, h3, h4, .page-heading, .kpi-num, .card-inst-name, .setup-banner h2 {
   position: fixed;
   top: 0; left: 0;
   z-index: 300;
-  transition: transform 0.35s var(--spring);
+  transition: transform 0.35s var(--spring), width 0.3s var(--spring);
   border-right: 1px solid rgba(255, 255, 255, 0.08);
   box-shadow: 4px 0 24px rgba(5, 24, 16, 0.35);
+  overflow-x: hidden;
 }
 
 .sidebar-head {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 12px;
-  padding: 22px 18px 18px;
+  justify-content: center;
+  padding: 14px 6px 12px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   position: relative;
+  text-align: center;
 }
 
 .sidebar-head::after {
   content: '';
   position: absolute;
-  bottom: -1px; left: 18px; right: 18px;
+  bottom: -1px; left: 12px; right: 12px;
   height: 1px;
   background: linear-gradient(90deg, rgba(52, 211, 153, 0.5), transparent);
 }
 
 .school-emblem {
   font-size: 26px;
-  width: 44px;
-  height: 44px;
+  width: 42px;
+  height: 42px;
   border-radius: var(--radius-md);
   background: rgba(255, 255, 255, 0.08);
   display: flex;
@@ -237,6 +240,7 @@ h1, h2, h3, h4, .page-heading, .kpi-num, .card-inst-name, .setup-banner h2 {
   transition: transform 0.3s var(--spring);
   overflow: hidden;
   padding: 3px;
+  cursor: pointer;
 }
 
 .school-emblem img {
@@ -248,37 +252,34 @@ h1, h2, h3, h4, .page-heading, .kpi-num, .card-inst-name, .setup-banner h2 {
 }
 
 .sidebar-head:hover .school-emblem {
-  transform: scale(1.06) rotate(2deg);
+  transform: scale(1.08) rotate(2deg);
 }
 
-.school-name {
-  font-size: 14.5px;
-  font-weight: 800;
-  color: #e6f7ed;
-  line-height: 1.25;
-  letter-spacing: -0.01em;
+.school-info {
+  display: none !important;
 }
 
-.school-loc {
-  font-size: 11px;
-  color: rgba(180, 222, 198, 0.7);
-  margin-top: 2px;
+.sidebar-toggle-btn {
+  display: none !important;
 }
 
-/* Guru Active Profile Strip */
+/* Guru Active Profile Strip (Compact Avatar for Rail) */
 .guru-strip {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 12px;
-  padding: 14px 18px;
+  justify-content: center;
+  padding: 10px 4px;
+  gap: 4px;
   background: rgba(255, 255, 255, 0.04);
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
   position: relative;
   transition: background 0.2s ease;
+  cursor: pointer;
 }
 
 .guru-strip:hover {
-  background: rgba(255, 255, 255, 0.07);
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .guru-initials {
@@ -291,126 +292,138 @@ h1, h2, h3, h4, .page-heading, .kpi-num, .card-inst-name, .setup-banner h2 {
   align-items: center;
   justify-content: center;
   font-weight: 800;
-  font-size: 14px;
+  font-size: 13.5px;
   flex-shrink: 0;
   box-shadow: 0 0 12px rgba(16, 185, 129, 0.4);
   border: 2px solid rgba(255, 255, 255, 0.2);
 }
 
 .guru-detail {
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
+  display: none !important;
 }
 
-.g-nama {
-  font-size: 13px;
-  font-weight: 700;
-  color: #f0fdf4;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.g-nip {
-  font-size: 10.5px;
-  color: rgba(180, 222, 198, 0.65);
-  font-family: monospace;
-}
-
-/* Sidenav Links */
+/* Sidenav Links (Android Vertical Rail) */
 .sidenav {
-  padding: 14px 12px;
+  padding: 8px 4px;
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 4px;
   overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: none;
+}
+
+.sidenav::-webkit-scrollbar {
+  display: none;
+}
+
+.nav-divider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.1);
+  margin: 5px 8px;
 }
 
 .nav-group-label {
-  font-size: 10px;
-  letter-spacing: 1.4px;
-  color: rgba(167, 243, 208, 0.4);
-  padding: 10px 10px 4px;
-  font-weight: 800;
-  text-transform: uppercase;
+  display: none !important;
 }
 
 .nav-btn {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 10px;
+  justify-content: center;
   width: 100%;
-  padding: 10px 14px;
+  padding: 6px 2px 7px;
   border: none;
   background: transparent;
-  color: rgba(226, 245, 233, 0.72);
-  border-radius: var(--radius-md);
+  color: rgba(226, 245, 233, 0.75);
+  border-radius: 12px;
   cursor: pointer;
   font-family: inherit;
-  font-size: 13.5px;
-  font-weight: 600;
-  text-align: left;
-  transition: all 0.22s var(--spring);
+  transition: all 0.2s var(--spring);
   position: relative;
+  text-align: center;
+  gap: 2px;
 }
 
-.nav-btn span {
-  font-size: 16px;
-  display: inline-block;
-  transition: transform 0.22s var(--spring);
-  transform-origin: center center;
+.nav-btn .nav-icon-wrap,
+.nav-btn > span:first-child {
+  font-size: 20px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 26px;
+  border-radius: 13px;
+  margin-bottom: 2px;
+  transition: all 0.22s var(--spring);
+}
+
+.nav-btn .nav-text {
+  font-size: 10px;
+  font-weight: 700;
+  color: rgba(226, 245, 233, 0.85);
+  line-height: 1.15;
+  text-align: center;
+  display: block !important;
+  letter-spacing: -0.2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 74px;
 }
 
 .nav-btn:hover {
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.06);
   color: #ffffff;
-  transform: translateX(3px);
+  transform: translateY(-1px);
 }
 
-.nav-btn:hover span {
-  animation: iconWobbleBounce 0.55s ease infinite alternate;
+.nav-btn:hover .nav-icon-wrap,
+.nav-btn:hover > span:first-child {
+  background: rgba(255, 255, 255, 0.12);
+  transform: scale(1.1);
 }
 
 .nav-btn:active {
-  transform: scale(0.98);
+  transform: scale(0.96);
 }
 
+/* Material You Pill Highlight for Active Button */
 .nav-btn.active {
-  background: linear-gradient(135deg, rgba(16, 185, 129, 0.22) 0%, rgba(5, 150, 105, 0.35) 100%);
+  background: transparent;
+}
+
+.nav-btn.active .nav-icon-wrap,
+.nav-btn.active > span:first-child {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.35) 0%, rgba(5, 150, 105, 0.55) 100%);
+  border: 1px solid rgba(52, 211, 153, 0.45);
+  box-shadow: 0 2px 10px rgba(16, 185, 129, 0.4);
   color: #ffffff;
-  font-weight: 700;
-  border: 1px solid rgba(52, 211, 153, 0.3);
-  box-shadow: 0 4px 14px rgba(5, 150, 105, 0.25);
+}
+
+.nav-btn.active .nav-text {
+  color: #34d399;
+  font-weight: 800;
 }
 
 .nav-btn.active::before {
-  content: '';
-  position: absolute;
-  left: 0; top: 22%; bottom: 22%;
-  width: 3.5px;
-  background: #34d399;
-  border-radius: 0 4px 4px 0;
-  box-shadow: 0 0 10px #34d399;
+  display: none;
 }
 
 .sidebar-ta {
-  padding: 12px 16px;
-  font-size: 11px;
-  color: rgba(180, 222, 198, 0.45);
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
-  text-align: center;
-  background: rgba(0, 0, 0, 0.15);
+  display: none !important;
 }
 
 /* ──────────────────────────────────────────────
    5. RIGHT PANEL & MODERN TOPBAR
 ────────────────────────────────────────────── */
 .right-panel {
-  margin-left: 250px;
-  width: calc(100vw - 250px);
-  max-width: calc(100vw - 250px);
+  margin-left: 82px;
+  width: calc(100vw - 82px);
+  max-width: calc(100vw - 82px);
   min-width: 0;
   flex: 1 1 auto;
   display: flex;
@@ -2364,7 +2377,7 @@ textarea { resize: vertical; }
 @media (max-width: 720px) {
   .sidebar          { transform: translateX(-100%); }
   .sidebar.open     { transform: translateX(0); }
-  .right-panel      { margin-left: 0; }
+  .right-panel      { margin-left: 0 !important; width: 100% !important; max-width: 100vw !important; }
   .hamburger        { display: block; }
   .content-area     { padding: 18px 16px; }
   .kpi-row          { grid-template-columns: 1fr; }
@@ -3352,41 +3365,54 @@ body.dark-mode {
   transform: scale(1.05);
 }
 
-/* Minimize State */
+/* Sidebar Full Collapse / Zen Mode */
+body.sidebar-collapsed .sidebar {
+  transform: translateX(-100%);
+}
+body.sidebar-collapsed .right-panel {
+  margin-left: 0 !important;
+  width: 100vw !important;
+  max-width: 100vw !important;
+}
+
+/* Minimize State Harmonization (Android Rail is default 82px) */
 body.sidebar-mini .sidebar {
-  width: 72px;
+  width: 82px;
 }
 
 body.sidebar-mini .right-panel {
-  margin-left: 72px;
-  width: calc(100vw - 72px);
-  max-width: calc(100vw - 72px);
+  margin-left: 82px;
+  width: calc(100vw - 82px);
+  max-width: calc(100vw - 82px);
 }
 
 body.sidebar-mini .school-info,
 body.sidebar-mini .guru-detail,
-body.sidebar-mini .nav-text,
 body.sidebar-mini .sidebar-ta {
   display: none !important;
 }
 
+body.sidebar-mini .nav-text {
+  display: block !important;
+}
+
 body.sidebar-mini .sidebar-head {
-  padding: 18px 8px;
+  padding: 14px 6px 12px;
   justify-content: center;
   gap: 0;
 }
 
 body.sidebar-mini .sidebar-toggle-btn {
-  display: none;
+  display: none !important;
 }
 
 body.sidebar-mini .school-emblem {
-  width: 40px;
-  height: 40px;
+  width: 42px;
+  height: 42px;
 }
 
 body.sidebar-mini .guru-strip {
-  padding: 12px 0;
+  padding: 10px 4px;
   justify-content: center;
   position: relative;
 }

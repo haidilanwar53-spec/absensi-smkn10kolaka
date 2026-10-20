@@ -175,40 +175,23 @@ function toggleTheme() {
 //  SIDEBAR MINIMIZE & TOGGLE CONTROLLER
 // ─────────────────────────────────────────────
 function initSidebarMinimize() {
-  const savedMini = localStorage.getItem('smkn10_sidebar_mini') === 'true';
-  if (savedMini && window.innerWidth > 720) {
-    applySidebarMini(true, false);
-  }
-}
-
-function applySidebarMini(isMini, showFeedback = true) {
-  document.body.classList.toggle('sidebar-mini', isMini);
-  localStorage.setItem('smkn10_sidebar_mini', isMini ? 'true' : 'false');
-
-  // Update Topbar & Sidebar Head Icon
-  const topbarIcon = document.getElementById('topbar-sidebar-toggle-icon');
-  const sideIcon = document.getElementById('sidebar-toggle-icon');
-  const fabText = document.getElementById('fab-sidebar-text');
-  const fabIcon = document.getElementById('fab-sidebar-icon');
-
-  if (topbarIcon) topbarIcon.textContent = isMini ? '▶' : '◀';
-  if (sideIcon) sideIcon.textContent = isMini ? '▶' : '◀';
-  if (fabText) fabText.textContent = isMini ? 'Perbesar' : 'Sidebar';
-  if (fabIcon) fabIcon.textContent = isMini ? '📂' : '📑';
-
-  if (showFeedback && typeof showToast === 'function') {
-    showToast(isMini ? 'Sidebar Diperkecil (Icon Only) 📑' : 'Sidebar Diperluas 📑', 'info');
-  }
+  // Clear legacy sidebar-mini state so Android Navigation Rail is active by default
+  localStorage.removeItem('smkn10_sidebar_mini');
+  document.body.classList.remove('sidebar-mini');
 }
 
 function toggleSidebarMinimize() {
-  // On mobile, toggle .open
+  // On mobile, toggle .open drawer
   if (window.innerWidth <= 720) {
     toggleSidebar();
     return;
   }
-  const isMini = document.body.classList.contains('sidebar-mini');
-  applySidebarMini(!isMini, true);
+  const isCollapsed = document.body.classList.toggle('sidebar-collapsed');
+  const topbarIcon = document.getElementById('topbar-sidebar-toggle-icon');
+  if (topbarIcon) topbarIcon.textContent = isCollapsed ? '▶' : '◀';
+  if (typeof showToast === 'function') {
+    showToast(isCollapsed ? 'Layar Penuh (Sidebar Disembunyikan)' : 'Sidebar Ditampilkan', 'info');
+  }
 }
 
 // ─────────────────────────────────────────────
