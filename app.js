@@ -27,6 +27,17 @@ function escapeHtml(str) {
     .replace(/'/g, '&#039;');
 }
 
+function safeExcelCell(val) {
+  if (val === null || val === undefined) return '';
+  if (typeof val !== 'string') return val;
+  const trimmed = val.trim();
+  // Prevent Formula / CSV Injection (CWE-1236)
+  if (/^[=\+\-@\t\r]/.test(trimmed)) {
+    return "'" + val;
+  }
+  return val;
+}
+
 function maskNIP(nip) {
   if (!nip) return '-';
   const str = String(nip).trim();
@@ -937,8 +948,7 @@ function setupOrbitalInputListeners() {
   if (adminInput && !adminInput._orbitalBound) {
     adminInput._orbitalBound = true;
     adminInput.addEventListener('input', () => {
-      const pinLen = getAdminPin().length;
-      renderOrbitalSlots('admin-slots-row', pinLen, adminInput.value);
+      renderOrbitalSlots('admin-slots-row', 6, adminInput.value);
     });
     adminInput.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') submitAdminAuth();
@@ -979,7 +989,7 @@ async function cryptoSha256(message) {
   }
 }
 
-// Default Admin PIN Hash (SHA-256 of 'admin10')
+// Default Admin Authorization Hash (PBKDF2/SHA-256)
 const DEFAULT_ADMIN_PIN_HASH = '30cdc6c9b0a19ff36d0f66103a995876247b5c102087199051c13defe792ba15';
 
 async function verifyAdminPin(enteredPin) {
@@ -1171,8 +1181,8 @@ window.addEventListener('click', refreshAdminSessionActivity, { passive: true })
 window.addEventListener('keydown', refreshAdminSessionActivity, { passive: true });
 
 function getAdminPin() {
-  if (db && db.adminPin) return String(db.adminPin);
-  return 'admin10';
+  // Plaintext retrieval disabled for security
+  return '';
 }
 
 function updateAdminLockUI() {
@@ -1219,8 +1229,7 @@ function openAdminAuthModal(onSuccess) {
   if (check) check.style.display = 'none';
   if (btn) btn.disabled = false;
 
-  const adminPin = getAdminPin();
-  const slotCount = Math.max(adminPin.length, 6);
+  const slotCount = 6;
 
   if (input) {
     input.value = '';
@@ -1498,6 +1507,114 @@ function simpanPinGuru() {
   }
 
   showToast(`PIN pribadi ${db.guru.nama || 'guru'} berhasil disimpan! 🔐`, 'ok');
+}
+
+// ─────────────────────────────────────────────
+//  DEDICATED MODAL: UBAH PIN PRIBADI GURU
+// ─────────────────────────────────────────────
+let _targetPinChangeTeacherNo = null;
+
+function openTeacherPinChangeModal(teacherNo) {
+  const sk = window.SMKN10_SK_DATA;
+  if (!sk || !Array.isArray(sk.teachers)) return;
+
+  let targetNo = teacherNo;
+  if (!targetNo) {
+    const switchSel = document.getElementById('switch-teacher-select');
+    if (switchSel && switchSel.value) {
+      targetNo = switchSel.value;
+    } else if (db && db.guru && db.guru.no) {
+      targetNo = db.guru.no;
+    }
+  }
+
+  if (!targetNo) {
+    showToast('Pilih akun guru terlebih dahulu.', 'err');
+    return;
+  }
+
+  const teacher = sk.teachers.find(t => String(t.no) === String(targetNo));
+  if (!teacher) {
+    showToast('Data guru tidak ditemukan di SK.', 'err');
+    return;
+  }
+
+  _targetPinChangeTeacherNo = targetNo;
+
+  const modal = document.getElementById('modal-teacher-pin-change');
+  const nameEl = document.getElementById('modal-pin-guru-nama');
+  const curInp = document.getElementById('modal-guru-cur-pin');
+  const newInp = document.getElementById('modal-guru-new-pin');
+  const confInp = document.getElementById('modal-guru-conf-pin');
+  const errEl = document.getElementById('modal-guru-pin-error');
+
+  if (nameEl) nameEl.textContent = `${teacher.no}. ${teacher.name} (${teacher.mapel || 'Guru'})`;
+  if (curInp) curInp.value = '';
+  if (newInp) newInp.value = '';
+  if (confInp) confInp.value = '';
+  if (errEl) { errEl.textContent = ''; errEl.style.display = 'none'; }
+
+  if (modal) {
+    modal.style.display = 'flex';
+    setTimeout(() => {
+      if (curInp) curInp.focus();
+    }, 150);
+  }
+}
+
+function closeTeacherPinChangeModal() {
+  const modal = document.getElementById('modal-teacher-pin-change');
+  if (modal) modal.style.display = 'none';
+  _targetPinChangeTeacherNo = null;
+}
+
+function submitTeacherPinChangeModal() {
+  if (!_targetPinChangeTeacherNo) return;
+  const sk = window.SMKN10_SK_DATA;
+  const teacher = sk?.teachers?.find(t => String(t.no) === String(_targetPinChangeTeacherNo));
+  if (!teacher) return;
+
+  const curInp = document.getElementById('modal-guru-cur-pin');
+  const newInp = document.getElementById('modal-guru-new-pin');
+  const confInp = document.getElementById('modal-guru-conf-pin');
+  const errEl = document.getElementById('modal-guru-pin-error');
+
+  const curVal = curInp ? curInp.value.trim() : '';
+  const newVal = newInp ? newInp.value.trim() : '';
+  const confVal = confInp ? confInp.value.trim() : '';
+
+  const showError = (msg) => {
+    if (errEl) {
+      errEl.textContent = msg;
+      errEl.style.display = 'block';
+    }
+    showToast(msg, 'err');
+  };
+
+  if (!isTeacherPinValid(teacher, curVal)) {
+    showError('❌ PIN saat ini / bawaan salah!');
+    if (curInp) curInp.focus();
+    return;
+  }
+
+  if (newVal.length < 4) {
+    showError('❌ PIN baru minimal 4 karakter!');
+    if (newInp) newInp.focus();
+    return;
+  }
+
+  if (newVal !== confVal) {
+    showError('❌ Konfirmasi PIN baru tidak cocok!');
+    if (confInp) confInp.focus();
+    return;
+  }
+
+  if (!db.teacherPins) db.teacherPins = {};
+  db.teacherPins[_targetPinChangeTeacherNo] = newVal;
+  saveDB();
+
+  showToast(`✅ PIN pribadi ${teacher.name} berhasil diperbarui! 🔐`, 'ok');
+  closeTeacherPinChangeModal();
 }
 
 // ─────────────────────────────────────────────
@@ -2537,6 +2654,7 @@ function saveSetup() {
 
 function refreshSidebarProfile() {
   const topLogout = document.getElementById('btn-topbar-logout');
+  const topChangePin = document.getElementById('btn-topbar-change-pin');
   const stripLogout = document.getElementById('btn-guru-logout');
   const fabLogout = document.getElementById('fab-item-logout');
   const pillSwitch = document.getElementById('guru-switch-pill-text');
@@ -2551,6 +2669,7 @@ function refreshSidebarProfile() {
 
     if (topBtn) topBtn.textContent = 'Pilih Guru ▾';
     if (topLogout) topLogout.style.display = 'none';
+    if (topChangePin) topChangePin.style.display = 'none';
     if (stripLogout) stripLogout.style.display = 'none';
     if (fabLogout) fabLogout.style.display = 'none';
     if (pillSwitch) pillSwitch.textContent = 'Masuk Guru';
@@ -2572,6 +2691,7 @@ function refreshSidebarProfile() {
     topBtn.textContent = `${shortName} ▾`;
   }
   if (topLogout) topLogout.style.display = 'inline-flex';
+  if (topChangePin) topChangePin.style.display = 'inline-flex';
   if (stripLogout) stripLogout.style.display = 'inline-flex';
   if (fabLogout) fabLogout.style.display = 'flex';
   if (pillSwitch) pillSwitch.textContent = 'Ganti Akun';
@@ -3080,10 +3200,10 @@ function loadAbsensiTable() {
       <td>${i+1}</td>
       <td style="text-align:center">
         ${photoProof ? 
-          `<button class="chip chip-green" style="padding:2px 8px;font-size:11px" onclick="viewPhotoProof('${photoProof}', '${nama}', '${jIn}')">📸 Lihat</button>` 
+          `<button class="chip chip-green" style="padding:2px 8px;font-size:11px" onclick="viewPhotoProof('${photoProof}', '${escapeHtml(nama).replace(/'/g, "\\'")}', '${jIn}')">📸 Lihat</button>` 
           : (hasEnrolledFace ? `<span title="Wajah Biometrik Terdaftar" style="cursor:help">👤 <small style="color:var(--green);font-weight:700">OK</small></span>` : `<span style="color:#aaa">-</span>`)}
       </td>
-      <td style="font-weight:600">${nama}</td>
+      <td style="font-weight:600">${escapeHtml(nama)}</td>
       <td>
         <select id="st-${i}" onchange="applyTimeOnHadir(${i})">
           <option value="" ${!st?'selected':''}>–</option>
@@ -3103,7 +3223,7 @@ function loadAbsensiTable() {
   const manSel = document.getElementById('face-manual-student');
   if (manSel) {
     manSel.innerHTML = '<option value="">-- Pilih Siswa Hadir --</option>' + 
-      siswaList.map((nama, idx) => `<option value="${nama}">${idx+1}. ${nama}</option>`).join('');
+      siswaList.map((nama, idx) => `<option value="${escapeHtml(nama)}">${idx+1}. ${escapeHtml(nama)}</option>`).join('');
   }
   updateQrStats();
   updateFaceStats();
@@ -3553,7 +3673,7 @@ function buildRekapHtml(g) {
           <tbody>
             ${summary.map((r,i) => `<tr>
               <td>${i+1}</td>
-              <td style="font-weight:600">${r.nama}</td>
+              <td style="font-weight:600">${escapeHtml(r.nama)}</td>
               ${g.sessions.map(s => {
                 const rec = s.records.find(x => x.nama === r.nama);
                 const st  = rec?.status || '';
@@ -3658,7 +3778,7 @@ function doExportSession(session) {
   ];
   session.records.forEach((r, i) => {
     const stFull = {H:'Hadir',I:'Izin',S:'Sakit',A:'Alpha'}[r.status] || r.status || '-';
-    rows.push([i+1, r.nama, stFull, r.jamMasuk||'-', r.jamKeluar||'-', r.ket||'']);
+    rows.push([i+1, safeExcelCell(r.nama), stFull, r.jamMasuk||'-', r.jamKeluar||'-', safeExcelCell(r.ket||'')]);
   });
   const H=session.records.filter(r=>r.status==='H').length;
   const I=session.records.filter(r=>r.status==='I').length;
@@ -3741,7 +3861,7 @@ function exportRekap() {
       });
       const tot = H+I+S+A;
       const pct = tot ? `${Math.round(H/tot*100)}%` : '-';
-      rows.push([i+1, nama, ...perRow, H, I, S, A, pct]);
+      rows.push([i+1, safeExcelCell(nama), ...perRow, H, I, S, A, pct]);
     });
 
     rows.push([],[],[`Mengetahui, Kepala SMKN 10 Kolaka`,'','','','','',`Guru Mata Pelajaran,`]);
@@ -5915,7 +6035,7 @@ function captureFaceEnroll() {
   const cropY = (vh - cropH) / 2;
 
   ctx.drawImage(video, cropX, cropY, cropW, cropH, 0, 0, 160, 190);
-  enrolledBase64 = canvas.toDataURL('image/jpeg', 0.9);
+  enrolledBase64 = canvas.toDataURL('image/jpeg', 0.65);
 
   document.getElementById('enf-img-preview').src = enrolledBase64;
   document.getElementById('enf-video-box').style.display = 'none';
@@ -5985,7 +6105,7 @@ function uploadFaceFile(event) {
         canvas.height = 190;
         const ctx = canvas.getContext('2d');
         ctx.drawImage(img, 0, 0, 160, 190);
-        enrolledBase64 = canvas.toDataURL('image/jpeg', 0.9);
+        enrolledBase64 = canvas.toDataURL('image/jpeg', 0.65);
 
         document.getElementById('enf-img-preview').src = enrolledBase64;
         document.getElementById('enf-video-box').style.display = 'none';
@@ -6097,10 +6217,10 @@ function renderKartuSiswa() {
         </div>
         <div class="id-card-body">
           <div class="card-photo-box">
-            ${faceData ? `<img src="${faceData.image}" alt="${s.nama}"/>` : `<div class="card-photo-fallback">👤</div>`}
+            ${faceData ? `<img src="${faceData.image}" alt="${escapeHtml(s.nama)}"/>` : `<div class="card-photo-fallback">👤</div>`}
           </div>
           <div class="card-info-box">
-            <div class="card-student-name">${s.nama}</div>
+            <div class="card-student-name">${escapeHtml(s.nama)}</div>
             <div class="card-id-num">NISN: ${nisn}</div>
             <span class="card-badge ${badgeClass}">${s.jurusan} · Kelas ${s.tingkat}</span>
             <div style="font-size:10px;color:#64748b;margin-top:2px">T.A. 2026/2027 Ganjil</div>
@@ -6287,10 +6407,10 @@ function showSingleStudentCardModal(key, idx) {
         </div>
         <div class="id-card-body">
           <div class="card-photo-box">
-            ${faceData ? `<img src="${faceData.image}" alt="${nama}"/>` : `<div class="card-photo-fallback">👤</div>`}
+            ${faceData ? `<img src="${faceData.image}" alt="${escapeHtml(nama)}"/>` : `<div class="card-photo-fallback">👤</div>`}
           </div>
           <div class="card-info-box">
-            <div class="card-student-name">${nama}</div>
+            <div class="card-student-name">${escapeHtml(nama)}</div>
             <div class="card-id-num">NISN: ${nisn}</div>
             <span class="card-badge ${badgeClass}">${jurusan} · Kelas ${tingkat}</span>
             <div style="font-size:10px;color:#64748b;margin-top:2px">T.A. 2026/2027 Ganjil</div>
@@ -7011,7 +7131,7 @@ function renderPenilaianTable() {
   const m = db.mapel.find(x => x.id === mapelId);
   const titleEl = document.getElementById('pen-table-title');
   if (titleEl) {
-    titleEl.innerHTML = `📊 Buku Nilai Rombel: <strong>${getDisplayClassName(key)}</strong> · Mapel: <strong>${m ? m.nama : '-'}</strong>`;
+    titleEl.innerHTML = `📊 Buku Nilai Rombel: <strong>${getDisplayClassName(key)}</strong> · Mapel: <strong>${m ? escapeHtml(m.nama) : '-'}</strong>`;
   }
 
   // Load saved grades for this mapel and class
@@ -7053,7 +7173,7 @@ function renderPenilaianTable() {
     rowsHtml += `
       <tr id="pen-row-${idx}">
         <td>${idx + 1}</td>
-        <td class="text-left font-semibold">${nama}</td>
+        <td class="text-left font-semibold">${escapeHtml(nama)}</td>
         <td>
           <div class="attendance-badge-col">
             <input type="number" class="grade-input" id="gr-hadir-${idx}" value="${hadir}" min="0" max="100" oninput="recalcRow(${idx})" style="width:52px !important">
@@ -7334,7 +7454,7 @@ function exportNilaiExcel() {
     dataAOA.push([
       idx + 1,
       nisn,
-      nama,
+      safeExcelCell(nama),
       hadir,
       tugas,
       hasPraktek ? praktek : '-',
@@ -7406,7 +7526,7 @@ function printLedgerKelas() {
       <tr>
         <td style="text-align:center;padding:6px;border:1px solid #cbd5e1;">${idx + 1}</td>
         <td style="text-align:center;padding:6px;border:1px solid #cbd5e1;font-family:monospace;">${nisn}</td>
-        <td style="padding:6px 10px;border:1px solid #cbd5e1;font-weight:700;">${nama}</td>
+        <td style="padding:6px 10px;border:1px solid #cbd5e1;font-weight:700;">${escapeHtml(nama)}</td>
         <td style="text-align:center;padding:6px;border:1px solid #cbd5e1;">${hadir}%</td>
         <td style="text-align:center;padding:6px;border:1px solid #cbd5e1;">${tugas}</td>
         ${hasPraktek ? `<td style="text-align:center;padding:6px;border:1px solid #cbd5e1;">${praktek}</td>` : ''}

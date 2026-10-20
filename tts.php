@@ -62,8 +62,21 @@ if (empty($text)) {
     exit;
 }
 
-// 3. Cek Cache Berdasarkan Hash Teks + Suara
-$hash = md5($voice . '_' . $text);
+// 2b. Keamanan Ketat: Batasi panjang dan karakter teks (Cegah Command Injection & Penolakan Layanan)
+// Hanya izinkan huruf, angka, spasi, dan tanda baca umum bahasa Indonesia
+$cleanText = preg_replace('/[^\p{L}\p{N}\s\.,\?!_\-\(\)\'\"]/u', ' ', $text);
+$cleanText = preg_replace('/\s+/', ' ', trim($cleanText));
+$cleanText = mb_substr($cleanText, 0, 250);
+
+if (empty($cleanText)) {
+    header('Content-Type: application/json');
+    http_response_code(400);
+    echo json_encode(['error' => 'Karakter teks tidak valid']);
+    exit;
+}
+
+// 3. Cek Cache Berdasarkan Hash Teks Bersih + Suara
+$hash = md5($voice . '_' . $cleanText);
 $cacheFile = $cacheDir . '/' . $hash . '.mp3';
 
 if (file_exists($cacheFile) && filesize($cacheFile) > 1000) {
@@ -74,12 +87,11 @@ if (file_exists($cacheFile) && filesize($cacheFile) > 1000) {
     exit;
 }
 
-// 4. Sintesis On-Demand Menggunakan Python edge-tts
-$safeText = str_replace(['"', "\r", "\n", "`", "$"], [' ', ' ', ' ', '', ''], $text);
-$cmd = sprintf('python -m edge_tts --voice %s --rate="-2%%" --text "%s" --write-media "%s"',
+// 4. Sintesis On-Demand Menggunakan Python edge-tts dengan Escaping Shell Aman
+$cmd = sprintf('python -m edge_tts --voice %s --rate="-2%%" --text %s --write-media %s',
     escapeshellarg($voice),
-    addslashes($safeText),
-    addslashes($cacheFile)
+    escapeshellarg($cleanText),
+    escapeshellarg($cacheFile)
 );
 
 @exec($cmd, $output, $returnVar);
@@ -93,8 +105,8 @@ if (file_exists($cacheFile) && filesize($cacheFile) > 1000) {
 } else {
     header('Content-Type: application/json');
     http_response_code(500);
+    // Aman: Jangan bocorkan path sistem atau raw command ke klien
     echo json_encode([
-        'error' => 'Gagal memproduksi audio Edge-TTS',
-        'cmd' => $cmd
+        'error' => 'Gagal memproduksi audio Edge-TTS'
     ]);
 }
