@@ -1991,77 +1991,7 @@
 
   <div class="toast-wrap" id="toast"></div>
 
-  <!-- ==============================================
-       CENTER FAB (FLOATING ACTION DOCK & QUICK MENU)
-       ============================================== -->
-  <div class="center-fab-dock" id="center-fab-dock" role="toolbar" aria-label="Aksi Cepat & Navigasi">
-    <!-- Popover Quick Menu -->
-    <div class="center-fab-menu" id="center-fab-menu" style="display:none">
-      <div class="fab-menu-header">
-        <div style="display:flex;align-items:center;gap:8px">
-          <span class="live-dot" style="background:#10b981"></span>
-          <strong>Menu Cepat SMKN 10</strong>
-        </div>
-        <button class="fab-menu-close" onclick="toggleFabMenu()" title="Tutup Menu">✕</button>
-      </div>
-      <div class="fab-menu-grid">
-        <button class="fab-menu-item" onclick="showPage('absensi'); toggleFabMenu();">
-          <span class="fab-menu-icon">✏️</span>
-          <span class="fab-menu-lbl">Input Absensi</span>
-        </button>
-        <button class="fab-menu-item" onclick="showPage('absen-guru'); toggleFabMenu();">
-          <span class="fab-menu-icon">🕒</span>
-          <span class="fab-menu-lbl">Presensi Guru</span>
-        </button>
-        <button class="fab-menu-item" onclick="showPage('rekap'); toggleFabMenu();">
-          <span class="fab-menu-icon">📋</span>
-          <span class="fab-menu-lbl">Rekap Absensi</span>
-        </button>
-        <button class="fab-menu-item" onclick="showPage('kartu'); toggleFabMenu();">
-          <span class="fab-menu-icon">🪪</span>
-          <span class="fab-menu-lbl">Cetak Kartu</span>
-        </button>
-        <button class="fab-menu-item" onclick="openTeacherSwitchModal(); toggleFabMenu();">
-          <span class="fab-menu-icon">👤</span>
-          <span class="fab-menu-lbl">Ganti Guru</span>
-        </button>
-        <button class="fab-menu-item fab-menu-logout" id="fab-item-logout" onclick="logoutGuru(event); toggleFabMenu();" title="Keluar / Logout Akun Guru" style="display:none">
-          <span class="fab-menu-icon" style="color:#ef4444">🚪</span>
-          <span class="fab-menu-lbl" style="color:#ef4444;font-weight:700">Logout</span>
-        </button>
-        <button class="fab-menu-item" onclick="showPage('dashboard'); toggleFabMenu();">
-          <span class="fab-menu-icon">🏠</span>
-          <span class="fab-menu-lbl">Dashboard</span>
-        </button>
-      </div>
-    </div>
 
-    <!-- Center Floating Action Dock Tray -->
-    <div class="fab-pill-tray">
-      <!-- 1. Sidebar Minimize Toggle -->
-      <button class="fab-tray-btn" id="fab-sidebar-toggle" onclick="toggleSidebarMinimize()" title="Perkecil / Perbesar Sidebar (Minimize)">
-        <span class="fab-icon" id="fab-sidebar-icon">📑</span>
-        <span class="fab-text" id="fab-sidebar-text">Sidebar</span>
-      </button>
-
-      <!-- 2. Core Center FAB (Glowing Liquid Capsule Button) -->
-      <button class="fab-core-btn" id="fab-core-trigger" onclick="toggleFabMenu()" title="Pusat Aksi Cepat (Center FAB)">
-        <span class="fab-core-icon">✨</span>
-        <span class="fab-core-text">Aksi Cepat</span>
-      </button>
-
-      <!-- 3. Dark / Light Theme Toggle -->
-      <button class="fab-tray-btn" id="fab-theme-toggle" onclick="toggleTheme()" title="Ubah Tema Gelap / Terang">
-        <span class="fab-icon" id="fab-theme-icon">🌙</span>
-        <span class="fab-text" id="fab-theme-text">Gelap</span>
-      </button>
-
-      <!-- 4. Scroll To Top Helper -->
-      <button class="fab-tray-btn fab-top-btn" onclick="scrollToPageTop()" title="Kembali ke Atas">
-        <span class="fab-icon">⬆️</span>
-      </button>
-    </div>
-  </div>
 
   <!-- ========================================================= -->
   <!-- MODAL KHIDMAT: LAGU KEBANGSAAN INDONESIA RAYA (PUKUL 10.00) -->
@@ -2215,7 +2145,7 @@
   <audio id="audio-indonesia-raya" src="audio/indonesia_raya.ogg" preload="auto"></audio>
   <script src="sk_data.js?v=20261015_11"></script>
   <script src="bell.js?v=20261017_01"></script>
-  <script src="app.js?v=20261020_02"></script>
+  <script src="app.js?v=20261020_03"></script>
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {

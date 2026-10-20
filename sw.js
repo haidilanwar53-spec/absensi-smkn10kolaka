@@ -1,5 +1,5 @@
 // Service Worker for Absensi SMKN 10 Kolaka
-const CACHE_NAME = 'smkn10-cache-v2';
+const CACHE_NAME = 'smkn10-cache-v3';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
