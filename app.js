@@ -231,6 +231,7 @@ window.addEventListener('DOMContentLoaded', () => {
   } catch(_) {}
   loadCustomSKData();
   loadDB();
+  TeacherSession.init();
   renderDate();
   populateSKDropdowns();
   updateAdminLockUI();
@@ -1163,6 +1164,138 @@ function refreshAdminSessionActivity() {
 window.addEventListener('click', refreshAdminSessionActivity, { passive: true });
 window.addEventListener('keydown', refreshAdminSessionActivity, { passive: true });
 
+// ─────────────────────────────────────────────
+//  TEACHER SESSION LIFECYCLE CONTROLLER
+//  (Auto-logout saat browser/aplikasi ditutup atau dikeluarkan paksa)
+// ─────────────────────────────────────────────
+const TEACHER_SESSION_KEY = 'smkn10_teacher_session';
+const TEACHER_UNLOAD_KEY = 'smkn10_teacher_unload_ts';
+const TEACHER_SESSION_MAX_INACTIVE_MS = 2 * 60 * 60 * 1000; // 2 jam inaktifitas
+
+const TeacherSession = {
+  create(guru) {
+    if (!guru) return;
+    try {
+      const data = {
+        no: guru.no || null,
+        nama: guru.nama || '',
+        nip: guru.nip || '',
+        loginAt: Date.now(),
+        lastActive: Date.now()
+      };
+      sessionStorage.setItem(TEACHER_SESSION_KEY, JSON.stringify(data));
+      sessionStorage.removeItem(TEACHER_UNLOAD_KEY);
+    } catch(e) {
+      console.warn('TeacherSession.create error:', e);
+    }
+  },
+
+  isValid(guru) {
+    if (!guru) return false;
+    try {
+      const raw = sessionStorage.getItem(TEACHER_SESSION_KEY);
+      if (!raw) return false; // sessionStorage kosong = browser pernah ditutup / kill
+      
+      const session = JSON.parse(raw);
+      if (!session || !session.loginAt) return false;
+
+      // Verifikasi kecocokan identitas guru
+      if (guru.no && session.no && String(guru.no) !== String(session.no)) {
+        return false;
+      }
+      if (guru.nama && session.nama && guru.nama.trim().toLowerCase() !== session.nama.trim().toLowerCase()) {
+        return false;
+      }
+
+      // Deteksi jika window pernah ditutup lalu di-restore oleh browser lebih dari 10 detik kemudian
+      const unloadTs = sessionStorage.getItem(TEACHER_UNLOAD_KEY);
+      if (unloadTs) {
+        sessionStorage.removeItem(TEACHER_UNLOAD_KEY);
+        const timeAway = Date.now() - Number(unloadTs);
+        if (timeAway > 10000) {
+          // Browser ditutup lebih dari 10 detik (bukan refresh cepat F5)
+          return false;
+        }
+      }
+
+      // Cek batas waktu idle/inaktif (2 jam)
+      if (session.lastActive && (Date.now() - session.lastActive > TEACHER_SESSION_MAX_INACTIVE_MS)) {
+        return false;
+      }
+
+      return true;
+    } catch(e) {
+      return false;
+    }
+  },
+
+  touch() {
+    try {
+      const raw = sessionStorage.getItem(TEACHER_SESSION_KEY);
+      if (raw) {
+        const session = JSON.parse(raw);
+        session.lastActive = Date.now();
+        sessionStorage.setItem(TEACHER_SESSION_KEY, JSON.stringify(session));
+      }
+    } catch(_) {}
+  },
+
+  clear() {
+    try {
+      sessionStorage.removeItem(TEACHER_SESSION_KEY);
+      sessionStorage.removeItem(TEACHER_UNLOAD_KEY);
+    } catch(_) {}
+  },
+
+  init() {
+    if (db && db.guru) {
+      if (!this.isValid(db.guru)) {
+        console.info('🛡️ Sesi aplikasi sebelumnya telah ditutup/berakhir. Logout otomatis akun guru.');
+        db.guru = null;
+        this.clear();
+        try {
+          sessionStorage.removeItem('smkn10_admin_session');
+        } catch(_) {}
+        saveDB();
+      } else {
+        this.touch();
+      }
+    }
+  }
+};
+
+// Catat waktu unload agar bisa membedakan antara F5 (refresh) vs penutupan jendela browser
+window.addEventListener('beforeunload', () => {
+  try {
+    sessionStorage.setItem(TEACHER_UNLOAD_KEY, Date.now());
+  } catch(_) {}
+});
+window.addEventListener('pagehide', () => {
+  try {
+    sessionStorage.setItem(TEACHER_UNLOAD_KEY, Date.now());
+  } catch(_) {}
+});
+
+// Perbarui aktivitas sesi guru saat berinteraksi
+['click', 'keydown', 'touchstart'].forEach(evt => {
+  window.addEventListener(evt, () => TeacherSession.touch(), { passive: true });
+});
+
+// Pengecekan berkala sesi idle setiap 1 menit
+setInterval(() => {
+  if (db && db.guru && !TeacherSession.isValid(db.guru)) {
+    console.info('🛡️ Sesi guru telah berakhir karena inaktivitas. Logout otomatis.');
+    db.guru = null;
+    TeacherSession.clear();
+    saveDB();
+    refreshSidebarProfile();
+    activatePage('setup');
+    if (typeof showToast === 'function') {
+      showToast('Sesi Anda telah berakhir karena inaktif. Silakan masuk kembali.', 'info');
+    }
+  }
+}, 60000);
+
 function getAdminPin() {
   // Plaintext retrieval disabled for security
   return '';
@@ -1803,6 +1936,7 @@ function logoutGuru(event) {
   appConfirm(`Apakah Anda yakin ingin <b>Logout (Keluar)</b> dari akun guru <b>${escapeHtml(guruNama)}</b>?<br><br><span style="font-size:12px;color:var(--text-muted)">Seluruh data absensi & penilaian Anda tetap tersimpan dengan aman di sistem.</span>`, () => {
     // 1. Clear active teacher
     db.guru = null;
+    TeacherSession.clear();
 
     // 2. Clear admin session if active
     try {
@@ -1935,6 +2069,7 @@ function submitTeacherSwitch() {
         no: t.no
       };
       saveDB();
+      TeacherSession.create(db.guru);
 
       refreshSidebarProfile();
       refreshAbMapelOptions();
@@ -2617,6 +2752,7 @@ function saveSetup() {
     };
 
     saveDB();
+    TeacherSession.create(db.guru);
     refreshSidebarProfile();
     try { refreshAbMapelOptions(); } catch(e) { console.warn(e); }
     try { refreshRekapMapelOptions(); } catch(e) { console.warn(e); }
@@ -3935,6 +4071,7 @@ function simpanPengaturan() {
     no:   teacherObj?.no   || db.guru?.no   || null
   };
   saveDB();
+  TeacherSession.create(db.guru);
   refreshSidebarProfile();
   refreshAbMapelOptions();
   refreshRekapMapelOptions();
