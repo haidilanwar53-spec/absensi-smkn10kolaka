@@ -1551,7 +1551,7 @@ async function simpanSandiAdmin() {
   showToast('Sandi Administrator berhasil diperbarui! 🔑', 'ok');
 }
 
-function simpanPinGuru() {
+async function simpanPinGuru() {
   if (!db || !db.guru) {
     showToast('Tidak ada akun guru yang sedang aktif.', 'err');
     return;
@@ -1577,8 +1577,8 @@ function simpanPinGuru() {
   const newVal = newInp ? newInp.value.trim() : '';
   const confVal = confInp ? confInp.value.trim() : '';
 
-  const expectedCurPin = getTeacherExpectedPin(t);
-  if (curVal.toLowerCase() !== expectedCurPin.toLowerCase()) {
+  const isCurValid = await isTeacherPinValid(t, curVal);
+  if (!isCurValid) {
     showToast('PIN saat ini tidak cocok!', 'err');
     if (statusMsg) {
       statusMsg.style.color = '#ef4444';
@@ -1608,8 +1608,9 @@ function simpanPinGuru() {
     return;
   }
 
+  const hashedVal = await cryptoSha256(newVal.toLowerCase());
   if (!db.teacherPins) db.teacherPins = {};
-  db.teacherPins[currentTeacherNo] = newVal;
+  db.teacherPins[currentTeacherNo] = hashedVal;
   saveDB();
 
   if (curInp) curInp.value = '';
@@ -1684,7 +1685,7 @@ function closeTeacherPinChangeModal() {
   _targetPinChangeTeacherNo = null;
 }
 
-function submitTeacherPinChangeModal() {
+async function submitTeacherPinChangeModal() {
   if (!_targetPinChangeTeacherNo) return;
   const sk = window.SMKN10_SK_DATA;
   const teacher = sk?.teachers?.find(t => String(t.no) === String(_targetPinChangeTeacherNo));
@@ -1707,7 +1708,8 @@ function submitTeacherPinChangeModal() {
     showToast(msg, 'err');
   };
 
-  if (!isTeacherPinValid(teacher, curVal)) {
+  const isCurValid = await isTeacherPinValid(teacher, curVal);
+  if (!isCurValid) {
     showError('❌ PIN saat ini / bawaan salah!');
     if (curInp) curInp.focus();
     return;
@@ -1725,8 +1727,9 @@ function submitTeacherPinChangeModal() {
     return;
   }
 
+  const hashedVal = await cryptoSha256(newVal.toLowerCase());
   if (!db.teacherPins) db.teacherPins = {};
-  db.teacherPins[_targetPinChangeTeacherNo] = newVal;
+  db.teacherPins[_targetPinChangeTeacherNo] = hashedVal;
   saveDB();
 
   showToast(`✅ PIN pribadi ${teacher.name} berhasil diperbarui! 🔐`, 'ok');
@@ -1745,20 +1748,30 @@ function getTeacherDefaultPin(name) {
 }
 
 function getTeacherExpectedPin(teacher) {
-  if (!teacher) return 'gur12@';
-  if (db && db.teacherPins && db.teacherPins[teacher.no]) {
-    return String(db.teacherPins[teacher.no]);
-  }
-  return getTeacherDefaultPin(teacher.name);
+  // Demi privasi dan keamanan kriptografis, jangan bocorkan PIN atau panjangnya
+  return '******';
 }
 
-function isTeacherPinValid(teacher, enteredPin) {
+async function isTeacherPinValid(teacher, enteredPin) {
   if (!teacher || !enteredPin) return false;
   const pin = enteredPin.trim().toLowerCase();
   
-  // 1. Custom PIN set by teacher
+  // 1. Custom PIN set by teacher (SHA-256 Hash atau Migrasi Otomatis dari Plaintext)
   if (db && db.teacherPins && db.teacherPins[teacher.no]) {
-    return pin === String(db.teacherPins[teacher.no]).trim().toLowerCase();
+    const stored = String(db.teacherPins[teacher.no]).trim();
+    if (/^[0-9a-f]{64}$/i.test(stored)) {
+      const pinHash = await cryptoSha256(pin);
+      return pinHash.toLowerCase() === stored.toLowerCase();
+    } else {
+      // Migrasi on-the-fly dari plaintext lama ke hash SHA-256
+      if (pin === stored.toLowerCase()) {
+        try {
+          db.teacherPins[teacher.no] = await cryptoSha256(pin);
+          saveDB();
+        } catch(_) {}
+        return true;
+      }
+    }
   }
 
   // 2. Standard Default PIN assigned to teacher (e.g. has12@)
@@ -1986,7 +1999,7 @@ function autoFillTeacherPin() {
   showToast('Fitur isi otomatis dinonaktifkan demi keamanan autentikasi PIN guru.', 'info');
 }
 
-function submitTeacherSwitch() {
+async function submitTeacherSwitch() {
   const sel = document.getElementById('switch-teacher-select');
   const pinInp = document.getElementById('switch-teacher-pin');
   const err = document.getElementById('switch-teacher-error');
@@ -2021,7 +2034,7 @@ function submitTeacherSwitch() {
     return;
   }
 
-  if (!isTeacherPinValid(t, enteredPin)) {
+  if (!await isTeacherPinValid(t, enteredPin)) {
     const attemptResult = SecurityGuard.recordFailure('teacher', selNo);
     const defPin = getTeacherDefaultPin(t.name);
     if (attemptResult.locked) {
@@ -2679,7 +2692,7 @@ function isSessionBelongingToTeacher(session, teacherObj) {
   return false;
 }
 
-function saveSetup() {
+async function saveSetup() {
   try {
     const nama = v('su-nama'), nip = v('su-nip');
     let ta = (v('su-ta') || '2026/2027').trim();
@@ -2722,7 +2735,7 @@ function saveSetup() {
         return;
       }
 
-      if (!isTeacherPinValid(t, pinVal)) {
+      if (!await isTeacherPinValid(t, pinVal)) {
         const attemptResult = SecurityGuard.recordFailure('teacher', t.no);
         const defPin = getTeacherDefaultPin(t.name);
         let errMsg = '';
@@ -4080,12 +4093,23 @@ function simpanPengaturan() {
 }
 
 function backupData() {
-  const blob = new Blob([JSON.stringify(db,null,2)],{type:'application/json'});
+  if (!isAdminAuthenticated()) {
+    showToast('Akses ditolak: Memerlukan otorisasi Administrator untuk mengunduh cadangan database!', 'err');
+    openAdminAuthModal();
+    return;
+  }
+  // 🛡️ Proteksi Keamanan Kriptografis: Jangan sertakan hash PIN admin & PIN guru ke dalam file cadangan JSON tanpa enkripsi
+  const exportDb = JSON.parse(JSON.stringify(db));
+  delete exportDb.adminPinHash;
+  delete exportDb.adminPin;
+  delete exportDb.teacherPins;
+
+  const blob = new Blob([JSON.stringify(exportDb, null, 2)], { type: 'application/json' });
   const url  = URL.createObjectURL(blob);
-  const a = Object.assign(document.createElement('a'),{href:url,download:`backup_smkn10_${todayStr()}.json`});
+  const a = Object.assign(document.createElement('a'), { href: url, download: `backup_smkn10_${todayStr()}.json` });
   a.click();
   URL.revokeObjectURL(url);
-  showToast('Backup berhasil didownload 📤','ok');
+  showToast('Backup berhasil didownload (rahasia kredensial dilindungi) 📦', 'ok');
 }
 
 function restoreData(evt) {
@@ -4116,11 +4140,16 @@ function restoreData(evt) {
       if (!parsed || typeof parsed !== 'object') throw 0;
       if (!parsed.guru && !parsed.siswa && !parsed.absensi) throw 0;
 
+      const currentPinHash = db.adminPinHash;
+      const currentTeacherPins = db.teacherPins;
+
       db = parsed;
       db.mapel   = db.mapel   || [];
       db.siswa   = db.siswa   || {};
       db.absensi = db.absensi || [];
-      db.adminPinHash = db.adminPinHash || (typeof DEFAULT_ADMIN_PIN_HASH !== 'undefined' ? DEFAULT_ADMIN_PIN_HASH : '30cdc6c9b0a19ff36d0f66103a995876247b5c102087199051c13defe792ba15');
+      // Pertahankan kredensial aktif jika file cadangan bersih/dihilangkan rahasianya
+      db.adminPinHash = db.adminPinHash || currentPinHash || (typeof DEFAULT_ADMIN_PIN_HASH !== 'undefined' ? DEFAULT_ADMIN_PIN_HASH : '30cdc6c9b0a19ff36d0f66103a995876247b5c102087199051c13defe792ba15');
+      db.teacherPins = db.teacherPins || currentTeacherPins || {};
       delete db.adminPin; // Remove plain text
       saveDB();
       refreshSidebarProfile();
@@ -4738,20 +4767,21 @@ function downloadSKTemplateExcel() {
     if (t.classes_taught) {
       clsStr = Object.entries(t.classes_taught).map(([c, h]) => `${c}: ${h}`).join(', ');
     }
-    const pin = (db && db.teacherPins && db.teacherPins[t.no]) ? db.teacherPins[t.no] : '123456';
+    // 🛡️ Keamanan: Jangan ekspor PIN rahasia login guru ke dalam template Excel publik
+    const pinMasked = '******';
     return [
       t.no || (idx + 1),
-      t.code || String(t.no).padStart(2, '0'),
-      t.name || '',
-      t.nip || '',
-      t.gol || '',
-      t.jabatan || '',
-      t.mapel || '',
+      safeExcelCell(t.code || String(t.no).padStart(2, '0')),
+      safeExcelCell(t.name || ''),
+      safeExcelCell(t.nip || ''),
+      safeExcelCell(t.gol || ''),
+      safeExcelCell(t.jabatan || ''),
+      safeExcelCell(t.mapel || ''),
       t.jam_ajar || 0,
       t.tugas_tambahan || 0,
       t.jam_pokok || (t.jam_ajar || 0) + (t.tugas_tambahan || 0),
-      clsStr,
-      pin
+      safeExcelCell(clsStr),
+      pinMasked
     ];
   });
   const wsGuru = XLSX_LIB.utils.aoa_to_sheet([guruHeader, ...guruRows]);
@@ -5225,7 +5255,7 @@ function syncMapelFromSKTeachers(teachers) {
   saveDB();
 }
 
-function processSelectedSKFile() {
+async function processSelectedSKFile() {
   const parsed = window._parsedSKDataToApply;
   if (!parsed) {
     showToast('Pilih file SK terlebih dahulu.', 'err');
@@ -5240,10 +5270,10 @@ function processSelectedSKFile() {
     importSchool: document.getElementById('sk-opt-school')?.checked ?? true
   };
 
-  applyImportedSKData(parsed, options);
+  await applyImportedSKData(parsed, options);
 }
 
-function applyImportedSKData(parsed, options = {}) {
+async function applyImportedSKData(parsed, options = {}) {
   if (!parsed) return;
 
   if (!window._defaultSKData && window.SMKN10_SK_DATA) {
@@ -5269,13 +5299,19 @@ function applyImportedSKData(parsed, options = {}) {
     updatedTeachersCount = parsed.teachers.length;
 
     db.teacherPins = db.teacherPins || {};
-    parsed.teachers.forEach(t => {
+    for (const t of parsed.teachers) {
       if (t.pin) {
-        db.teacherPins[t.no] = String(t.pin).trim();
-      } else if (!db.teacherPins[t.no]) {
-        db.teacherPins[t.no] = '123456';
+        const pinStr = String(t.pin).trim();
+        // 🛡️ Jangan menimpa kredensial jika nilai terisi mask '******' atau label template
+        if (pinStr && pinStr !== '******' && !pinStr.startsWith('[')) {
+          if (/^[0-9a-f]{64}$/i.test(pinStr)) {
+            db.teacherPins[t.no] = pinStr;
+          } else {
+            db.teacherPins[t.no] = await cryptoSha256(pinStr.toLowerCase());
+          }
+        }
       }
-    });
+    }
   }
 
   // 3. Roster / Schedule
@@ -6818,7 +6854,7 @@ function addTeacherTodayFeed(nama, action, time, status) {
       <div class="feed-avatar" style="background:#e0f2fe;color:#0369a1">👨‍🏫</div>
       <div>
         <div class="feed-name">${escapeHtml(nama)}</div>
-        <div class="feed-meta">${action === 'MASUK' ? `Datang · ${escapeHtml(statusStr)}` : 'Pulang'}</div>
+        <div class="feed-meta">${action === 'MASUK' ? `Datang · ${escapeHtml(status || 'Tepat Waktu')}` : 'Pulang'}</div>
       </div>
     </div>
     <div class="feed-time" style="color:${action === 'MASUK' ? 'var(--green)' : 'var(--blue)'}">${escapeHtml(time)} WITA</div>
@@ -6915,13 +6951,13 @@ function exportTeacherAttendance() {
   const headers = ['No', 'Tanggal', 'Nama Guru', 'NIP', 'Jam Masuk', 'Jam Pulang', 'Status Kehadiran', 'Metode Presensi'];
   const rows = list.map((r, i) => [
     i + 1,
-    r.tanggal,
-    r.nama,
-    r.nip || '-',
-    r.jamMasuk || '-',
-    r.jamPulang || '-',
-    r.status || 'Hadir',
-    r.metode || 'QR'
+    safeExcelCell(r.tanggal),
+    safeExcelCell(r.nama),
+    safeExcelCell(r.nip || '-'),
+    safeExcelCell(r.jamMasuk || '-'),
+    safeExcelCell(r.jamPulang || '-'),
+    safeExcelCell(r.status || 'Hadir'),
+    safeExcelCell(r.metode || 'QR')
   ]);
   const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
   const wb = XLSX.utils.book_new();

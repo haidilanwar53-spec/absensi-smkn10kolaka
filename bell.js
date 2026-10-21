@@ -20,6 +20,17 @@
 (function(window) {
   'use strict';
 
+  function escapeHtml(str) {
+    if (typeof window.escapeHtml === 'function') return window.escapeHtml(str);
+    if (!str) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
+
   // Daftar guru perempuan untuk penentuan sapaan "Ibu" (sisanya "Bapak")
   const FEMALE_TEACHERS = [
     'NURSAKTI', 'SUCIATI', 'HASRAWATI', 'ISNAWATI', 'MUSTIKA',
@@ -394,8 +405,8 @@
         <div class="announcement-content">
           <span class="announcement-bell-icon">🔔</span>
           <div class="announcement-text-wrap">
-            <span class="announcement-badge">PENGUMUMAN BEL SEKOLAH • ${providerBadge}</span>
-            <p class="announcement-body">${text}</p>
+            <span class="announcement-badge">PENGUMUMAN BEL SEKOLAH • ${escapeHtml(providerBadge)}</span>
+            <p class="announcement-body">${escapeHtml(text)}</p>
           </div>
           <button class="announcement-close-btn" onclick="SchoolBell.stopSound()" title="Tutup">✕</button>
         </div>
@@ -1190,16 +1201,16 @@
         } else {
           const todaySch = this.getTeacherTodaySchedule();
           if (todaySch.length === 0) {
-            teacherSlotEl.innerHTML = `🏖️ <b>${guru.nama}</b>: Tidak ada jadwal tatap muka hari ${dayName}.`;
+            teacherSlotEl.innerHTML = `🏖️ <b>${escapeHtml(guru.nama)}</b>: Tidak ada jadwal tatap muka hari ${escapeHtml(dayName)}.`;
           } else {
             const activeNow = todaySch.find(s => {
               const parts = s.time.split('-').map(x => x.trim().replace('.', ':'));
               return timeStr >= parts[0] && timeStr < parts[1];
             });
             if (activeNow) {
-              teacherSlotEl.innerHTML = `🟢 <b>Jadwal Anda Sekarang:</b> Kelas <span class="badge-cls">${activeNow.className}</span> – ${activeNow.subjectName} (${activeNow.time})`;
+              teacherSlotEl.innerHTML = `🟢 <b>Jadwal Anda Sekarang:</b> Kelas <span class="badge-cls">${escapeHtml(activeNow.className)}</span> – ${escapeHtml(activeNow.subjectName)} (${escapeHtml(activeNow.time)})`;
             } else {
-              teacherSlotEl.innerHTML = `📋 <b>Jadwal Anda Hari Ini (${todaySch.length} Jam):</b> ` + todaySch.map(s => `${s.className} (${s.time})`).join(', ');
+              teacherSlotEl.innerHTML = `📋 <b>Jadwal Anda Hari Ini (${todaySch.length} Jam):</b> ` + todaySch.map(s => `${escapeHtml(s.className)} (${escapeHtml(s.time)})`).join(', ');
             }
           }
         }

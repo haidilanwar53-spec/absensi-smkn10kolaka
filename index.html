@@ -41,6 +41,17 @@
   <link rel="stylesheet" href="style.css?v=20261018_01" />
   <script>
     (function() {
+      // 🛡️ Proteksi Anti-Clickjacking (CWE-1021)
+      try {
+        if (window.top !== window.self) {
+          if (window.top.location.hostname !== window.self.location.hostname) {
+            window.top.location = window.self.location;
+          }
+        }
+      } catch (e) {
+        try { window.top.location = window.self.location; } catch (_) {}
+      }
+
       try {
         const savedTheme = localStorage.getItem('smkn10_theme');
         if (savedTheme === 'dark' || (!savedTheme && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches)) {

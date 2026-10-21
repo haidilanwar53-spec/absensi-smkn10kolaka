@@ -7,6 +7,10 @@
  * dengan sistem smart local caching untuk kecepatan instan tanpa jeda.
  */
 
+// Keamanan: Security response headers
+header('X-Content-Type-Options: nosniff');
+header('X-Frame-Options: SAMEORIGIN');
+header('Referrer-Policy: strict-origin-when-cross-origin');
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type');
@@ -87,7 +91,65 @@ if (file_exists($cacheFile) && filesize($cacheFile) > 1000) {
     exit;
 }
 
-// 4. Sintesis On-Demand Menggunakan Python edge-tts dengan Escaping Shell Aman
+// 4. Rate Limiting: Batasi dynamic synthesis per IP (Mencegah serangan DoS & CPU Exhaustion)
+function checkTtsRateLimit($cacheDir) {
+    $ip = isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : '127.0.0.1';
+    $ipHash = md5($ip);
+    $limitDir = $cacheDir . '/.limits';
+    if (!is_dir($limitDir)) {
+        @mkdir($limitDir, 0777, true);
+    }
+    
+    $limitFile = $limitDir . '/' . $ipHash . '.json';
+    $now = time();
+    $window = 60; // Periode jendela 60 detik
+    $maxRequests = 20; // Maksimal 20 dynamic generation per menit per IP
+    
+    $data = ['count' => 0, 'start' => $now];
+    if (file_exists($limitFile)) {
+        $content = @file_get_contents($limitFile);
+        if ($content) {
+            $parsed = @json_decode($content, true);
+            if (is_array($parsed) && isset($parsed['start']) && isset($parsed['count'])) {
+                if ($now - $parsed['start'] < $window) {
+                    $data = $parsed;
+                }
+            }
+        }
+    }
+    
+    if ($data['count'] >= $maxRequests) {
+        return false;
+    }
+    
+    $data['count']++;
+    @file_put_contents($limitFile, json_encode($data), LOCK_EX);
+    
+    // Pembersihan berkala file limit usang (peluang 2%)
+    if (mt_rand(1, 50) === 1) {
+        $files = @glob($limitDir . '/*.json');
+        if ($files) {
+            foreach ($files as $f) {
+                if ($now - @filemtime($f) > 300) {
+                    @unlink($f);
+                }
+            }
+        }
+    }
+    
+    return true;
+}
+
+if (!checkTtsRateLimit($cacheDir)) {
+    header('Content-Type: application/json');
+    http_response_code(429);
+    echo json_encode([
+        'error' => 'Batas permintaan sintesis audio terlampaui (Rate limit exceeded). Harap tunggu beberapa saat.'
+    ]);
+    exit;
+}
+
+// 5. Sintesis On-Demand Menggunakan Python edge-tts dengan Escaping Shell Aman
 $cmd = sprintf('python -m edge_tts --voice %s --rate="-2%%" --text %s --write-media %s',
     escapeshellarg($voice),
     escapeshellarg($cleanText),
