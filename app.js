@@ -5869,17 +5869,83 @@ function computeFaceFeatures(ctx, width, height) {
   return features;
 }
 
-// Cosine similarity
+// Inisialisasi Native FaceDetector jika didukung oleh browser (Chrome / Edge / Android WebView)
+let _nativeFaceDetector = null;
+try {
+  if (typeof window !== 'undefined' && 'FaceDetector' in window) {
+    _nativeFaceDetector = new window.FaceDetector({ fastMode: true, maxDetectedFaces: 1 });
+  }
+} catch(_) {
+  _nativeFaceDetector = null;
+}
+
+// 🛡️ Filter Validasi Keberadaan Wajah Manusia (Cegah deteksi palsu di dinding / ruangan kosong)
+function checkFacePresence(ctx, width, height) {
+  const imgData = ctx.getImageData(0, 0, width, height);
+  const data = imgData.data;
+  const totalPixels = width * height;
+
+  let sumLuma = 0;
+  let sumLumaSq = 0;
+  let skinPixels = 0;
+
+  for (let i = 0; i < data.length; i += 4) {
+    const r = data[i];
+    const g = data[i + 1];
+    const b = data[i + 2];
+
+    const luma = 0.299 * r + 0.587 * g + 0.114 * b;
+    sumLuma += luma;
+    sumLumaSq += luma * luma;
+
+    // Klasifikasi spektrum warna kulit manusia (Peer / Kovacs Rule):
+    // R > G > B, (R - G) >= 10, dan memiliki saturasi warna non-abu-abu
+    const maxVal = Math.max(r, g, b);
+    const minVal = Math.min(r, g, b);
+    const isSkin = (r > 60) && (g > 35) && (b > 20) &&
+                   (r > g) && (g >= b) &&
+                   ((r - g) >= 10) &&
+                   ((maxVal - minVal) >= 12);
+    if (isSkin) skinPixels++;
+  }
+
+  const meanLuma = sumLuma / totalPixels;
+  const variance = (sumLumaSq / totalPixels) - (meanLuma * meanLuma);
+  const stdDev = Math.sqrt(Math.max(0, variance));
+  const skinRatio = skinPixels / totalPixels;
+
+  // Wajah manusia memiliki kontur terang-gelap (mata, hidung, rambut) dengan stdDev >= 16
+  // serta proporsi warna kulit minimal 10% di area oval
+  const isPresent = (stdDev >= 16) && (skinRatio >= 0.10) && (meanLuma >= 25 && meanLuma <= 240);
+
+  return { isPresent, stdDev, skinRatio, meanLuma };
+}
+
+// Pearson Correlation Coefficient (Zero-mean normalized cross-correlation)
+// Mencegah nilai palsu 80-95% yang timbul jika menggunakan raw cosine similarity pada warna ruangan polos
 function compareFaceVectors(vecA, vecB) {
   if (!vecA || !vecB || vecA.length !== vecB.length) return 0;
-  let dot = 0, normA = 0, normB = 0;
-  for (let i = 0; i < vecA.length; i++) {
-    dot += vecA[i] * vecB[i];
-    normA += vecA[i] * vecA[i];
-    normB += vecB[i] * vecB[i];
+  const n = vecA.length;
+  let sumA = 0, sumB = 0;
+  for (let i = 0; i < n; i++) {
+    sumA += vecA[i];
+    sumB += vecB[i];
   }
-  if (!normA || !normB) return 0;
-  return dot / (Math.sqrt(normA) * Math.sqrt(normB));
+  const meanA = sumA / n;
+  const meanB = sumB / n;
+
+  let num = 0, denomA = 0, denomB = 0;
+  for (let i = 0; i < n; i++) {
+    const diffA = vecA[i] - meanA;
+    const diffB = vecB[i] - meanB;
+    num += diffA * diffB;
+    denomA += diffA * diffA;
+    denomB += diffB * diffB;
+  }
+
+  if (denomA <= 1e-6 || denomB <= 1e-6) return 0;
+  const pearson = num / (Math.sqrt(denomA) * Math.sqrt(denomB));
+  return Math.max(0, pearson);
 }
 
 function startFaceAnalysisLoop() {
@@ -5890,12 +5956,27 @@ function startFaceAnalysisLoop() {
   const offCanvas = document.createElement('canvas');
   offCanvas.width = 128;
   offCanvas.height = 128;
-  const offCtx = offCanvas.getContext('2d');
+  const offCtx = offCanvas.getContext('2d', { willReadFrequently: true });
 
   if (faceAnalysisTimer) clearInterval(faceAnalysisTimer);
 
-  faceAnalysisTimer = setInterval(() => {
+  faceAnalysisTimer = setInterval(async () => {
     if (!faceStream || !video || video.readyState < 2) return;
+
+    // 1. Cek Native FaceDetector jika didukung oleh browser (Chrome/Edge/Android)
+    if (_nativeFaceDetector) {
+      try {
+        const detected = await _nativeFaceDetector.detect(video);
+        if (!detected || detected.length === 0) {
+          if (oval) oval.classList.remove('locked');
+          if (readout) {
+            readout.className = 'hud-readout';
+            readout.textContent = 'Mencari Wajah... Posisikan di dalam oval';
+          }
+          return;
+        }
+      } catch (_) {}
+    }
 
     const vw = video.videoWidth || 640;
     const vh = video.videoHeight || 480;
@@ -5904,6 +5985,19 @@ function startFaceAnalysisLoop() {
     const cropY = (vh - cropSize) / 2;
 
     offCtx.drawImage(video, cropX, cropY, cropSize, cropSize, 0, 0, 128, 128);
+
+    // 2. Filter Validasi Keberadaan Wajah (Skin Tone & Texture Variance)
+    // Mencegah deteksi palsu saat kamera mengarah ke dinding, meja, atau ruangan kosong
+    const presence = checkFacePresence(offCtx, 128, 128);
+    if (!presence.isPresent) {
+      if (oval) oval.classList.remove('locked');
+      if (readout) {
+        readout.className = 'hud-readout';
+        readout.textContent = 'Mencari Wajah... Posisikan di dalam oval';
+      }
+      return;
+    }
+
     const liveFeatures = computeFaceFeatures(offCtx, 128, 128);
 
     const kelasVal = document.getElementById('ab-kelas')?.value;
@@ -5929,7 +6023,7 @@ function startFaceAnalysisLoop() {
 
     const confidencePct = Math.round(bestScore * 100);
 
-    if (bestMatchName && confidencePct >= 72) {
+    if (bestMatchName && confidencePct >= 78) {
       if (oval) oval.classList.add('locked');
       if (readout) {
         readout.className = 'hud-readout success';
@@ -5947,7 +6041,7 @@ function startFaceAnalysisLoop() {
       if (oval) oval.classList.remove('locked');
       if (readout) {
         readout.className = 'hud-readout';
-        readout.textContent = 'Mendeteksi Wajah... Posisikan di dalam oval';
+        readout.textContent = bestScore > 0.45 ? `Mencocokkan (${confidencePct}%)... Dekatkan wajah` : 'Posisikan wajah di dalam oval';
       }
     }
   }, 400);
