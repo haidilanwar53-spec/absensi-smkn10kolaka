@@ -6006,24 +6006,65 @@ function startFaceAnalysisLoop() {
     const key = `${jurusan}-${tingkat}`;
     const siswaList = db.siswa[key] || [];
 
+    const manualStudent = document.getElementById('face-manual-student')?.value;
+
     let bestMatchName = null;
     let bestScore = 0;
+    let secondBestScore = 0;
+    let enrolledCount = 0;
 
-    siswaList.forEach(nama => {
-      const faceKey = `${key}-${nama}`;
+    if (manualStudent) {
+      // 1-on-1 Targeted Verification (Sangat presisi karena hanya memvalidasi siswa yang dipilih)
+      const faceKey = `${key}-${manualStudent}`;
       const enrolled = db.faces && db.faces[faceKey];
       if (enrolled && enrolled.features) {
-        const score = compareFaceVectors(liveFeatures, enrolled.features);
-        if (score > bestScore) {
-          bestScore = score;
-          bestMatchName = nama;
-        }
+        enrolledCount = 1;
+        bestScore = compareFaceVectors(liveFeatures, enrolled.features);
+        bestMatchName = manualStudent;
       }
-    });
+    } else {
+      // 1-on-Many Automatic Identification
+      siswaList.forEach(nama => {
+        const faceKey = `${key}-${nama}`;
+        const enrolled = db.faces && db.faces[faceKey];
+        if (enrolled && enrolled.features) {
+          enrolledCount++;
+          const score = compareFaceVectors(liveFeatures, enrolled.features);
+          if (score > bestScore) {
+            secondBestScore = bestScore;
+            bestScore = score;
+            bestMatchName = nama;
+          } else if (score > secondBestScore) {
+            secondBestScore = score;
+          }
+        }
+      });
+    }
 
     const confidencePct = Math.round(bestScore * 100);
 
-    if (bestMatchName && confidencePct >= 78) {
+    // 🛡️ AMBIGUITY REJECTION (Uji Keunikan Biometrik):
+    // Jika selisih antara kandidat peringkat 1 dan kandidat peringkat 2 kurang dari 0.06 (6%),
+    // artinya wajah di depan kamera BUKAN siswa terdaftar (misal wajah guru atau orang luar yang hanya mirip secara umum).
+    const isAmbiguous = (enrolledCount > 1 && !manualStudent) && ((bestScore - secondBestScore) < 0.06);
+
+    const isMatch = bestMatchName && (confidencePct >= 82) && !isAmbiguous;
+
+    if (isMatch) {
+      // Cek apakah siswa ini sudah berstatus Hadir hari ini
+      const idx = siswaList.findIndex(n => n.toLowerCase() === bestMatchName.toLowerCase());
+      const stSelect = document.getElementById(`st-${idx}`);
+      const isAlreadyPresent = (stSelect && stSelect.value === 'H');
+
+      if (isAlreadyPresent) {
+        if (oval) oval.classList.add('locked');
+        if (readout) {
+          readout.className = 'hud-readout success';
+          readout.textContent = `✅ ${bestMatchName} sudah tercatat Hadir`;
+        }
+        return;
+      }
+
       if (oval) oval.classList.add('locked');
       if (readout) {
         readout.className = 'hud-readout success';
@@ -6032,16 +6073,26 @@ function startFaceAnalysisLoop() {
 
       const autoVerify = document.getElementById('face-auto-verify')?.checked;
       const now = Date.now();
-      if (autoVerify && (now - lastFaceVerifiedTime > 3500)) {
+      // Berikan jeda cooldown 6 detik setelah verifikasi sukses agar siswa sempat bergantian dan tidak terjadi absen beruntun
+      if (autoVerify && (now - lastFaceVerifiedTime > 6000)) {
         lastFaceVerifiedTime = now;
         const snapshotData = offCanvas.toDataURL('image/jpeg', 0.85);
         verifyStudentFaceAttendance(bestMatchName, snapshotData, confidencePct);
+        if (readout) {
+          readout.textContent = `🎉 Hadir: ${bestMatchName}! Silakan bergantian.`;
+        }
       }
     } else {
       if (oval) oval.classList.remove('locked');
       if (readout) {
         readout.className = 'hud-readout';
-        readout.textContent = bestScore > 0.45 ? `Mencocokkan (${confidencePct}%)... Dekatkan wajah` : 'Posisikan wajah di dalam oval';
+        if (isAmbiguous && bestScore >= 0.70) {
+          readout.textContent = 'Wajah tidak cocok dengan siswa mana pun di kelas ini';
+        } else if (bestScore > 0.50) {
+          readout.textContent = `Mencocokkan (${confidencePct}%)... Dekatkan wajah`;
+        } else {
+          readout.textContent = 'Posisikan wajah di dalam oval';
+        }
       }
     }
   }, 400);
