@@ -5603,20 +5603,52 @@ function onStudentQrScanned(rawText) {
 
   let studentName = '';
   let studentClass = '';
+  let studentNisn = '';
+  let studentSchool = 'SMK Negeri 10 Kolaka';
 
-  if (rawText.startsWith('SMKN10|SISWA|')) {
-    const parts = rawText.split('|');
-    studentName = parts[3] || '';
-    studentClass = `${parts[4]} ${parts[5]}`;
-  } else if (rawText.startsWith('{')) {
+  const cleanText = (rawText || '').trim();
+
+  // 1. Format Baru 4 Baris:
+  // Nama : ...
+  // NISN : ...
+  // Kelas : ...
+  // Sekolah : ...
+  if (/Nama\s*:/i.test(cleanText)) {
+    const lines = cleanText.split('\n');
+    lines.forEach(line => {
+      const idxColon = line.indexOf(':');
+      if (idxColon !== -1) {
+        const key = line.substring(0, idxColon).trim().toLowerCase();
+        let val = line.substring(idxColon + 1).trim();
+        val = val.replace(/^["']|["']$/g, '').trim();
+        if (key === 'nama') studentName = val;
+        else if (key === 'nisn') studentNisn = val;
+        else if (key === 'kelas') studentClass = val;
+        else if (key === 'sekolah') studentSchool = val;
+      }
+    });
+  } else if (cleanText.startsWith('SMKN10|SISWA|')) {
+    // 2. Format Legacy: SMKN10|SISWA|TJKT-X-1|Aisyah RanI|tjkt|X
+    const parts = cleanText.split('|');
+    studentName = (parts[3] || '').trim();
+    const jur = (parts[4] || '').toUpperCase();
+    const tk = (parts[5] || '').toUpperCase();
+    studentClass = `${tk} ${jur}`.trim();
+  } else if (cleanText.startsWith('{')) {
+    // 3. Format JSON
     try {
-      const obj = JSON.parse(rawText);
+      const obj = JSON.parse(cleanText);
       studentName = obj.nama || obj.name || '';
       studentClass = obj.kelas || '';
+      studentNisn = obj.nisn || '';
+      studentSchool = obj.sekolah || 'SMK Negeri 10 Kolaka';
     } catch(_) {}
   } else {
-    studentName = rawText.trim();
+    // 4. Fallback Plain Name
+    studentName = cleanText;
   }
+
+  studentName = studentName.replace(/^["']|["']$/g, '').trim();
 
   // Active class validation
   const kelasVal = document.getElementById('ab-kelas')?.value;
@@ -5631,21 +5663,33 @@ function onStudentQrScanned(rawText) {
   // Match student name
   const matchIdx = siswaList.findIndex(n => 
     n.toLowerCase().trim() === studentName.toLowerCase().trim() ||
-    studentName.toLowerCase().includes(n.toLowerCase()) ||
-    n.toLowerCase().includes(studentName.toLowerCase())
+    studentName.toLowerCase().includes(n.toLowerCase().trim()) ||
+    n.toLowerCase().trim().includes(studentName.toLowerCase())
   );
 
   const statusBox = document.getElementById('qr-status-box');
   const timeStr = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  const displayClass = `${curTingkat} ${curJurusan}`;
 
   if (matchIdx === -1) {
     Sound.warning();
     if (statusBox) {
       statusBox.className = 'scan-status-alert warning';
       statusBox.style.display = 'flex';
-      statusBox.innerHTML = `<span>⚠️ Siswa "<strong>${escapeHtml(studentName)}</strong>" tidak terdaftar di kelas ${escapeHtml(curJurusan)} ${escapeHtml(curTingkat)}!</span>`;
+      statusBox.innerHTML = `
+        <div style="width:100%">
+          <div style="font-size:14px;font-weight:800;color:#b45309;margin-bottom:6px">⚠️ Siswa Tidak Terdaftar di Sesi Kelas Ini!</div>
+          <div style="font-size:13px;line-height:1.8;background:rgba(255,255,255,0.85);padding:10px 14px;border-radius:8px;border:1px solid #fde68a;font-family:inherit;color:#1e293b">
+            <div><strong>Nama :</strong> ${escapeHtml(studentName)}</div>
+            <div><strong>NISN :</strong> ${escapeHtml(studentNisn || ' ')}</div>
+            <div><strong>Kelas :</strong> ${escapeHtml(studentClass || displayClass)}</div>
+            <div><strong>Sekolah :</strong> ${escapeHtml(studentSchool || 'SMK Negeri 10 Kolaka')}</div>
+          </div>
+          <div style="font-size:11.5px;color:#92400e;margin-top:6px">Sesi kelas yang sedang dibuka presensi: <strong>${escapeHtml(displayClass)}</strong></div>
+        </div>
+      `;
     }
-    showToast(`QR terbaca: ${escapeHtml(studentName)} (bukan siswa kelas ini)`, 'err');
+    showToast(`QR terbaca: ${escapeHtml(studentName)} (bukan siswa kelas ${displayClass})`, 'err');
     return;
   }
 
@@ -5667,11 +5711,18 @@ function onStudentQrScanned(rawText) {
     statusBox.className = 'scan-status-alert success';
     statusBox.style.display = 'flex';
     statusBox.innerHTML = `
-      <div>
-        <div style="font-size:14px;font-weight:700">✅ Presensi Hadir Tercatat!</div>
-        <div style="font-size:12.5px;margin-top:2px">${escapeHtml(matchedName)} (${escapeHtml(curJurusan)} ${escapeHtml(curTingkat)}) · Jam: <strong>${escapeHtml(timeStr)}</strong></div>
+      <div style="width:100%">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <div style="font-size:14px;font-weight:800;color:#15803d">✅ Presensi Hadir Tercatat (Pukul ${escapeHtml(timeStr)} WITA)</div>
+          <span style="font-size:24px">🎉</span>
+        </div>
+        <div style="font-size:13px;line-height:1.8;background:rgba(255,255,255,0.85);padding:10px 14px;border-radius:8px;border:1px solid #bbf7d0;font-family:inherit;color:#1e293b">
+          <div><strong>Nama :</strong> ${escapeHtml(matchedName)}</div>
+          <div><strong>NISN :</strong> ${escapeHtml(studentNisn || ' ')}</div>
+          <div><strong>Kelas :</strong> ${escapeHtml(displayClass)}</div>
+          <div><strong>Sekolah :</strong> SMK Negeri 10 Kolaka</div>
+        </div>
       </div>
-      <span style="font-size:24px">🎉</span>
     `;
   }
 
@@ -6522,7 +6573,7 @@ function renderKartuSiswa() {
           </div>
           <div class="card-info-box">
             <div class="card-student-name">${escapeHtml(s.nama)}</div>
-            <div class="card-id-num">NISN: ${nisn}</div>
+            <div class="card-id-num">NISN: -</div>
             <span class="card-badge ${badgeClass}">${s.jurusan} · Kelas ${s.tingkat}</span>
             <div style="font-size:10px;color:#64748b;margin-top:2px">T.A. 2026/2027 Ganjil</div>
           </div>
@@ -6549,7 +6600,8 @@ function renderKartuSiswa() {
   allStudents.forEach((s, i) => {
     const el = document.getElementById(`qr-box-${i}`);
     if (el && typeof QRCode !== 'undefined') {
-      const qrData = `SMKN10|SISWA|${s.key}-${s.idx+1}|${s.nama}|${s.jurusan}|${s.tingkat}`;
+      const kelasStr = `${s.tingkat} ${s.jurusan.toUpperCase()}`;
+      const qrData = `Nama : ${s.nama}\nNISN : \nKelas : ${kelasStr}\nSekolah : SMK Negeri 10 Kolaka`;
       try {
         new QRCode(el, {
           text: qrData,
@@ -6712,7 +6764,7 @@ function showSingleStudentCardModal(key, idx) {
           </div>
           <div class="card-info-box">
             <div class="card-student-name">${escapeHtml(nama)}</div>
-            <div class="card-id-num">NISN: ${nisn}</div>
+            <div class="card-id-num">NISN: -</div>
             <span class="card-badge ${badgeClass}">${jurusan} · Kelas ${tingkat}</span>
             <div style="font-size:10px;color:#64748b;margin-top:2px">T.A. 2026/2027 Ganjil</div>
           </div>
@@ -6734,8 +6786,10 @@ function showSingleStudentCardModal(key, idx) {
     setTimeout(() => {
       const qrel = document.getElementById('single-modal-qr-target');
       if (qrel && typeof QRCode !== 'undefined') {
+        const kelasStr = `${tingkat} ${jurusan.toUpperCase()}`;
+        const qrData = `Nama : ${nama}\nNISN : \nKelas : ${kelasStr}\nSekolah : SMK Negeri 10 Kolaka`;
         new QRCode(qrel, {
-          text: `SMKN10|SISWA|${key}-${idx+1}|${nama}|${jurusan}|${tingkat}`,
+          text: qrData,
           width: 74,
           height: 74,
           colorDark: "#1c3d2c",
