@@ -1433,6 +1433,11 @@ async function submitAdminAuth() {
         closeAdminAuthModal();
         updateAdminLockUI();
         showToast('Otorisasi Administrator Berhasil! 🔓', 'ok');
+        if (db.adminPinHash === DEFAULT_ADMIN_PIN_HASH) {
+          setTimeout(() => {
+            showToast('⚠️ Perhatian Keamanan: Anda masih menggunakan PIN Admin bawaan sistem. Harap segera ubah PIN di menu Pengaturan!', 'info');
+          }, 1500);
+        }
 
         if (_pendingAdminAuthCallback) {
           const cb = _pendingAdminAuthCallback;
@@ -1772,15 +1777,13 @@ async function isTeacherPinValid(teacher, enteredPin) {
         return true;
       }
     }
+    // Keamanan: Jika guru telah menyetel PIN kustom, batalkan akses rumus bawaan (cegah bypass)
+    return false;
   }
 
-  // 2. Standard Default PIN assigned to teacher (e.g. has12@)
+  // 2. Standard Default PIN assigned to teacher (hanya berlaku satu kali saat inisialisasi awal)
   const defPin = getTeacherDefaultPin(teacher.name).toLowerCase();
   if (pin === defPin) return true;
-
-  // Flexible without '@' (e.g. has12)
-  const prefix = defPin.replace('12@', '');
-  if (pin === prefix + '12') return true;
 
   return false;
 }
@@ -2097,6 +2100,11 @@ async function submitTeacherSwitch() {
 
       closeTeacherSwitchModal();
       showToast(`Selamat datang, ${t.name}! 👋`, 'ok');
+      if (!db.teacherPins || !db.teacherPins[t.no]) {
+        setTimeout(() => {
+          showToast('⚠️ Akun masih memakai PIN bawaan sementara. Disarankan segera perbarui PIN melalui menu Pengaturan Profil!', 'info');
+        }, 1800);
+      }
       if (window.SchoolBell) {
         try {
           const d = new Date();
@@ -7084,15 +7092,21 @@ function renderMyTeacherQR() {
 
   if (box && typeof QRCode !== 'undefined') {
     box.innerHTML = '';
-    const qrText = `SMKN10|GURU|${db.guru.nip || '-'}|${db.guru.nama}|${db.guru.code || '01'}`;
-    new QRCode(box, {
-      text: qrText,
-      width: 150,
-      height: 150,
-      colorDark: "#1c3d2c",
-      colorLight: "#ffffff",
-      correctLevel: QRCode.CorrectLevel.M
-    });
+    const cleanNip = String(db.guru.nip || '-').replace(/[^\x00-\x7F]/g, '*');
+    const cleanNama = String(db.guru.nama || '').replace(/[^\x00-\x7F]/g, '');
+    const qrText = `SMKN10|GURU|${cleanNip}|${cleanNama}|${db.guru.code || '01'}`;
+    try {
+      new QRCode(box, {
+        text: qrText,
+        width: 150,
+        height: 150,
+        colorDark: "#1c3d2c",
+        colorLight: "#ffffff",
+        correctLevel: QRCode.CorrectLevel.L
+      });
+    } catch (e) {
+      console.warn('QR render fallback:', e);
+    }
   }
 }
 

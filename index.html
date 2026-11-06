@@ -10,7 +10,7 @@
   <meta name="format-detection" content="telephone=no" />
   <meta http-equiv="X-Content-Type-Options" content="nosniff" />
   <meta name="referrer" content="strict-origin-when-cross-origin" />
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https://*.github.io; connect-src 'self' http://localhost:8080 http://127.0.0.1:8080 http://192.168.*:8080; media-src 'self' blob: data:; object-src 'none'; base-uri 'self';" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https://*.github.io; connect-src 'self' https: http://localhost:8080 http://127.0.0.1:8080; media-src 'self' blob: data:; object-src 'none'; base-uri 'self';" />
   <title>Absensi Guru &amp; Siswa Digital – SMK Negeri 10 Kolaka</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -18,20 +18,23 @@
     href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
     rel="stylesheet">
   <script src="vendor/xlsx.full.min.js"></script>
-  <script>
-    if (typeof XLSX === 'undefined') {
-      document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"><\/script>');
-    }
-  </script>
   <script src="vendor/html5-qrcode.min.js"></script>
   <script src="vendor/qrcode.min.js"></script>
   <script>
-    if (typeof Html5Qrcode === 'undefined') {
-      document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"><\/script>');
-    }
-    if (typeof QRCode === 'undefined') {
-      document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"><\/script>');
-    }
+    // Fallback CDN loader tanpa document.write (Mencegah peringatan parser blocking & CSP restriction)
+    (function() {
+      function ensureLibrary(globalVar, cdnUrl) {
+        if (typeof window[globalVar] === 'undefined') {
+          const s = document.createElement('script');
+          s.src = cdnUrl;
+          s.async = false;
+          document.head.appendChild(s);
+        }
+      }
+      ensureLibrary('XLSX', 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js');
+      ensureLibrary('Html5Qrcode', 'https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js');
+      ensureLibrary('QRCode', 'https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js');
+    })();
   </script>
   <link rel="icon" type="image/png" href="img/favicon.png?v=20261015_11" />
   <link rel="apple-touch-icon" href="img/logo_smkn10.png?v=20261015_11" />

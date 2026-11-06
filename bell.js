@@ -304,10 +304,20 @@
         }
       }
 
-      // 2. Jika tidak ada file statis, gunakan endpoint dynamic tts.php
+      // 2. Jika tidak ada file statis:
+      // Pada hosting statis murni seperti GitHub Pages atau Cloudflare Pages, PHP tidak dieksekusi.
+      // Langsung gunakan Web Speech API untuk menghindari galat 404 / MIME PHP di konsol browser.
       if (!audioUrl) {
-        const cleanText = encodeURIComponent(this.cleanSpokenText(text));
-        audioUrl = `tts.php?text=${cleanText}&voice=${this.edgeVoice || 'id-ID-GadisNeural'}`;
+        const isStaticHosting = window.location.hostname.endsWith('github.io') || 
+                                window.location.hostname.endsWith('pages.dev') ||
+                                window.location.protocol === 'file:';
+        if (!isStaticHosting) {
+          const cleanText = encodeURIComponent(this.cleanSpokenText(text));
+          audioUrl = `tts.php?text=${cleanText}&voice=${this.edgeVoice || 'id-ID-GadisNeural'}`;
+        } else {
+          this.speakWithWebSpeech(text, onComplete);
+          return;
+        }
       }
 
       try {
