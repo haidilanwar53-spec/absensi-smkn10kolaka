@@ -736,8 +736,8 @@ window.SMKN10_SK_DATA = {
   },
   "wali_kelas": {
     "X MPLB": {
-      "guru": "ISNAWATI, S.Pd",
-      "nip": "NIP. 1987••••••••01"
+      "guru": "ZAINAL ASIS, S.Pd",
+      "nip": "NIPPK. 1988••••••••05"
     },
     "X TKJ": {
       "guru": "JUMAISAH, S.Pd",
